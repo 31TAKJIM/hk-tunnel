@@ -5,35 +5,137 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>隧道收費</title>
+    <link rel="apple-touch-icon" href="https://img.icons8.com">
+    <title>隧道收費看板</title>
     <style>
         :root { --bg: #f5f6f8; --card: #fff; --blue: #0047ab; --red: #e31d1a; --orange: #f58220; --green: #34C759; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: env(safe-area-inset-top) 16px 30px; color: #333; -webkit-user-select: none; }
-        .header { text-align: center; padding: 10px 0; }
-        .header h1 { font-size: 22px; margin: 0; font-weight: 800; }
-        #liveDate { font-size: 14px; color: #888; font-family: monospace; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); margin: 0; padding: env(safe-area-inset-top) 16px 30px; color: #333; -webkit-user-select: none; }
         
-        .card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 15px; position: relative; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; border-left: 10px solid transparent; transition: all 0.3s; }
+        .header { text-align: center; padding: 12px 0; }
+        .header h1 { font-size: 22px; margin: 0; font-weight: 800; letter-spacing: -0.5px; }
+        #liveDate { font-size: 14px; color: #888; font-family: ui-monospace, SFMono-Regular, monospace; margin-top: 4px; }
+        
+        .card { background: var(--card); border-radius: 20px; padding: 22px 20px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; border-left: 10px solid; box-shadow: 0 4px 12px rgba(0,0,0,0.05); will-change: background-color, border-color; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        
         .tl { border-color: var(--orange); } .wh { border-color: var(--blue); } .ch { border-color: var(--red); }
-        .cheap-mode { border-left-color: var(--green) !important; background: #fafff9; }
+        .cheap { border-left-color: var(--green) !important; background: #f8fff7; }
 
-        .t-name { font-size: 19px; font-weight: 800; margin-bottom: 4px; }
+        .t-name { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
         .tl .t-name { color: var(--orange); } .wh .t-name { color: var(--blue); } .ch .t-name { color: var(--red); }
-        .cheap-mode .t-name { color: #1a7f37 !important; }
+        .cheap .t-name { color: #1a7f37 !important; }
         
-        .label { font-size: 12px; color: #999; font-weight: 600; }
-        .price { font-size: 46px; font-weight: 900; margin: 0; letter-spacing: -2px; }
-        .price::before { content: "$"; font-size: 22px; margin-right: 2px; }
+        .price { font-size: 50px; font-weight: 900; margin: 0; letter-spacing: -3px; line-height: 1; }
+        .price::before { content: "$"; font-size: 22px; margin-right: 2px; vertical-align: baseline; }
         
         .right { text-align: right; min-width: 145px; }
-        .tag { font-size: 12px; font-weight: 700; color: white; background: #555; padding: 3px 8px; border-radius: 6px; margin-bottom: 10px; display: inline-block; }
-        .cheap-mode .tag { background: var(--green); }
+        .tag { font-size: 12px; font-weight: 700; color: #fff; background: #555; padding: 3px 10px; border-radius: 6px; margin-bottom: 12px; display: inline-block; }
+        .cheap .tag { background: var(--green); }
 
-        .cd-l { font-size: 14px; color: #666; font-weight: 700; margin-bottom: 2px; }
-        .cd-t { font-size: 23px; font-weight: 800; font-family: 'SF Mono', monospace; }
+        .cd-l { font-size: 15px; color: #666; font-weight: 700; margin-bottom: 4px; }
+        .cd-t { font-size: 26px; font-weight: 800; font-family: ui-monospace, monospace; letter-spacing: 0.5px; }
         .tl .cd-t { color: var(--orange); } .wh .cd-t { color: var(--blue); } .ch .cd-t { color: var(--red); }
-        .cheap-mode .cd-t { color: var(--green) !important; }
+        .cheap .cd-t { color: var(--green) !important; }
         
+        .footer { text-align: center; font-size: 11px; color: #aaa; line-height: 1.6; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>隧道收費即時看板</h1>
+        <div id="liveDate">載入中...</div>
+    </div>
+
+    <div id="c-tl" class="card tl">
+        <div><div class="t-name">大欖隧道 (TLT)</div><div class="price" id="p-tl">--</div></div>
+        <div class="right"><div class="tag s-tag">判定中</div><div class="cd-l" id="l-tl">距離 $18 還有</div><div class="cd-t" id="v-tl">--</div></div>
+    </div>
+
+    <div id="c-wh" class="card wh">
+        <div><div class="t-name">西隧 (WHC)</div><div class="price" id="p-wh">--</div></div>
+        <div class="right"><div class="tag s-tag">判定中</div><div class="cd-l" id="l-wh">距離 $20 還有</div><div class="cd-t" id="v-wh">--</div></div>
+    </div>
+
+    <div id="c-ch" class="card ch">
+        <div><div class="t-name">紅隧 / 東隧</div><div class="price" id="p-ch">--</div></div>
+        <div class="right"><div class="tag s-tag">判定中</div><div class="cd-l" id="l-ch">距離 $20 還有</div><div class="cd-t" id="v-ch">--</div></div>
+    </div>
+
+    <div class="footer">
+        數據校準：2026年3月實施方案<br>
+        包含每 2 分鐘 $2 的過渡跳表補償
+    </div>
+
+    <script>
+        // 緩存 DOM 元素提高效能
+        const el = id => document.getElementById(id);
+        const dom = {
+            date: el('liveDate'),
+            pTL: el('p-tl'), pWH: el('p-wh'), pCH: el('p-ch'),
+            vTL: el('v-tl'), vWH: el('v-wh'), vCH: el('v-ch'),
+            lTL: el('l-tl'), lWH: el('l-wh'), lCH: el('l-ch'),
+            cTL: el('c-tl'), cWH: el('c-wh'), cCH: el('c-ch'),
+            tags: document.querySelectorAll('.s-tag')
+        };
+
+        const fmt = s => {
+            if (s < 0) s += 86400;
+            const h = Math.floor(s / 3600).toString().padStart(2, '0');
+            const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+            const sec = (s % 60).toString().padStart(2, '0');
+            return `${h}:${m}:${sec}`;
+        };
+
+        function update() {
+            const now = new Date();
+            const sec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+            const day = now.getDay();
+            
+            dom.date.innerText = now.toLocaleString('zh-HK', {hour12:false, year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit'});
+
+            let tl=18, wh=20, ch=20, p="非繁忙";
+            const isWorkDay = day > 0;
+            const morningPush = 7.5 * 3600; // 07:30 變貴
+
+            if (isWorkDay) {
+                if ((sec >= 27000 && sec < 36900) || (sec >= 63000 && sec < 68400)) { tl=45; wh=60; ch=40; p="繁忙"; }
+                else if (sec >= 36900 && sec < 63000) { tl=30; wh=30; ch=30; p="一般"; }
+            } else if (sec >= 36900 && sec < 66600) { tl=30; wh=25; ch=25; p="一般"; }
+
+            // 補償計算
+            const targetBase = (day === 0 ? 18.5 : 19) * 3600;
+            const dWh = (targetBase + 2400) - sec, dTl = (targetBase + 1680) - sec;
+            const dMorning = morningPush - sec;
+
+            dom.pTL.innerText = tl; dom.pWH.innerText = wh; dom.pCH.innerText = ch;
+            dom.tags.forEach(t => t.innerText = p + "時段");
+
+            const setUI = (card, label, val, isCheap, diffC, diffM, targetPrice) => {
+                if (isCheap) {
+                    card.classList.add('cheap');
+                    label.innerText = "距離加價還有";
+                    val.innerText = fmt(diffM);
+                } else {
+                    card.classList.remove('cheap');
+                    label.innerText = `距離 $${targetPrice} 還有`;
+                    val.innerText = fmt(diffC);
+                }
+            };
+
+            const ok3T = (ch==20 && (sec > targetBase + 2400 || sec < 27000));
+            const okTL = (tl==18 && (sec > targetBase + 1680 || sec < 27000));
+
+            setUI(dom.cTL, dom.lTL, dom.vTL, okTL, dTl, dMorning, 18);
+            setUI(dom.cWH, dom.lWH, dom.vWH, ok3T, dWh, dMorning, 20);
+            setUI(dom.cCH, dom.lCH, dom.vCH, ok3T, dWh, dMorning, 20);
+        }
+
+        setInterval(update, 1000);
+        update();
+    </script>
+</body>
+</html>
         .footer { text-align: center; font-size: 11px; color: #aaa; line-height: 1.5; margin-top: 15px; }
     </style>
 </head>
