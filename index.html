@@ -6,7 +6,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="https://img.icons8.com">
-    <title>隧道收費看板</title>
+    <title>隧道收費</title>
     <style>
         :root { --bg: #f5f6f8; --card: #fff; --blue: #0047ab; --red: #e31d1a; --orange: #f58220; --green: #34C759; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -43,7 +43,7 @@
 <body>
 
     <div class="header">
-        <h1>隧道收費即時看板</h1>
+        <h1>隧道收費</h1>
         <div id="liveDate">載入中...</div>
     </div>
 
@@ -133,145 +133,6 @@
 
         setInterval(update, 1000);
         update();
-    </script>
-</body>
-</html>
-        .footer { text-align: center; font-size: 11px; color: #aaa; line-height: 1.5; margin-top: 15px; }
-    </style>
-</head>
-<body>
-
-    <div class="header">
-        <h1>隧道收費</h1>
-        <div id="liveDate">--</div>
-    </div>
-
-    <div class="card tl" id="c-tl">
-        <div><div class="t-name">大欖隧道 (TLT)</div><div class="label">目前收費</div><div class="price" id="p-tl">--</div></div>
-        <div class="right"><div class="tag" id="s-tl">--</div><div class="cd-l" id="l-tl">載入中</div><div class="cd-t" id="v-tl">--</div></div>
-    </div>
-
-    <div class="card wh" id="c-wh">
-        <div><div class="t-name">西隧 (WHC)</div><div class="label">目前收費</div><div class="price" id="p-wh">--</div></div>
-        <div class="right"><div class="tag" id="s-wh">--</div><div class="cd-l" id="l-wh">載入中</div><div class="cd-t" id="v-wh">--</div></div>
-    </div>
-
-    <div class="card ch" id="c-ch">
-        <div><div class="t-name">紅隧 / 東隧</div><div class="label">目前收費</div><div class="price" id="p-ch">--</div></div>
-        <div class="right"><div class="tag" id="s-ch">--</div><div class="cd-l" id="l-ch">載入中</div><div class="cd-t" id="v-ch">--</div></div>
-    </div>
-
-    <div class="footer">智能雙向倒數：<br>非繁忙時段會自動倒數至下一個「加價時段」</div>
-
-    <script>
-        const fmt = s => {
-            if (s < 0) s += 86400; 
-            return new Date(s * 1000).toISOString().substr(11, 8);
-        };
-
-        function update() {
-            const now = new Date(), h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
-            const sec = h * 3600 + m * 60 + s, day = now.getDay();
-            document.getElementById('liveDate').innerText = now.toLocaleString('zh-HK', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
-
-            let tl=18, wh=20, ch=20, p="非繁忙";
-            const isWD = day > 0; // 平日及週六
-            const morningStart = 7.5 * 3600; // 07:30 變貴
-
-            if (isWD) {
-                if ((sec >= 27000 && sec < 36900) || (sec >= 63000 && sec < 68400)) { tl=45; wh=60; ch=40; p="繁忙"; }
-                else if (sec >= 36900 && sec < 63000) { tl=30; wh=30; ch=30; p="一般"; }
-            } else if (sec >= 36900 && sec < 66600) { tl=30; wh=25; ch=25; p="一般"; }
-
-            const targetCheapBase = (day === 0 ? 18.5 : 19) * 3600;
-            const diffWhCheap = (targetCheapBase + 2400) - sec, diffTlCheap = (targetCheapBase + 1680) - sec;
-            const diffToMorning = morningStart - sec;
-
-            // 更新基礎顯示
-            document.getElementById('p-tl').innerText = tl;
-            document.getElementById('p-wh').innerText = wh;
-            document.getElementById('p-ch').innerText = ch;
-            document.querySelectorAll('.tag').forEach(el => el.innerText = p + "時段");
-
-            // 邏輯控制
-            const updateUI = (id, isCheap, diffCheap, diffMorning, price) => {
-                const card = document.getElementById('c-' + id), label = document.getElementById('l-' + id), val = document.getElementById('v-' + id);
-                if (isCheap) {
-                    card.classList.add('cheap-mode');
-                    label.innerText = "距離加價還有";
-                    val.innerText = fmt(diffMorning);
-                } else {
-                    card.classList.remove('cheap-mode');
-                    label.innerText = `距離 $${price} 還有`;
-                    val.innerText = fmt(diffCheap);
-                }
-            };
-
-            const realCheap3T = (ch==20 && sec > targetCheapBase + 2400 || ch==20 && sec < 27000);
-            const realCheapTL = (tl==18 && sec > targetCheapBase + 1680 || tl==18 && sec < 27000);
-
-            updateUI('tl', realCheapTL, diffTlCheap, diffToMorning, 18);
-            updateUI('wh', realCheap3T, diffWhCheap, diffToMorning, 20);
-            updateUI('ch', realCheap3T, diffWhCheap, diffToMorning, 20);
-        }
-
-        setInterval(update, 1000); update();
-    </script>
-</body>
-</html>
-    <div class="header">
-        <h1>隧道收費即時看板</h1>
-        <div id="liveDate">--</div>
-    </div>
-
-    <div class="card tl">
-        <div><div class="t-name">大欖隧道 (TLT)</div><div class="label">目前收費</div><div class="price" id="p-tl">--</div></div>
-        <div class="right"><div class="tag s-tag">--</div><div class="cd-l">距離 $18 還有</div><div class="cd-t" id="t-tl">--</div></div>
-    </div>
-
-    <div class="card wh">
-        <div><div class="t-name">西隧 (WHC)</div><div class="label">目前收費</div><div class="price" id="p-wh">--</div></div>
-        <div class="right"><div class="tag s-tag">--</div><div class="cd-l">距離 $20 還有</div><div class="cd-t" id="t-wh">--</div></div>
-    </div>
-
-    <div class="card ch">
-        <div><div class="t-name">紅隧 / 東隧</div><div class="label">目前收費</div><div class="price" id="p-ch">--</div></div>
-        <div class="right"><div class="tag s-tag">--</div><div class="cd-l">距離 $20 還有</div><div class="cd-t" id="t-ch">--</div></div>
-    </div>
-
-    <div class="footer">過渡收費已計算：每 2 分鐘 $2 跳表補償<br>倒數結束即為該時段之最低收費</div>
-
-    <script>
-        const fmt = s => s <= 0 ? "現正最平" : new Date(s * 1000).toISOString().substr(11, 8);
-
-        function update() {
-            const now = new Date(), h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
-            const sec = h * 3600 + m * 60 + s, day = now.getDay();
-            document.getElementById('liveDate').innerText = now.toLocaleString('zh-HK', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
-
-            let tl=18, wh=20, ch=20, p="非繁忙";
-            // 判定邏輯 (一至六相同, 日及假期不同)
-            if (day > 0) { // 平日及週六
-                if ((sec >= 27000 && sec < 36900) || (sec >= 63000 && sec < 68400)) { tl=45; wh=60; ch=40; p="繁忙"; }
-                else if (sec >= 36900 && sec < 63000) { tl=30; wh=30; ch=30; p="一般"; }
-            } else if (sec >= 36900 && sec < 66600) { tl=30; wh=25; ch=25; p="一般"; }
-
-            // 過渡補償目標 (平日 19:40 三隧完全降至 $20; 大欖 19:28 完全降至 $18)
-            const targetBase = (day === 0 ? 18.5 : 19) * 3600;
-            const diffWh = (targetBase + 2400) - sec, diffTl = (targetBase + 1680) - sec;
-
-            document.getElementById('p-tl').innerText = tl;
-            document.getElementById('p-wh').innerText = wh;
-            document.getElementById('p-ch').innerText = ch;
-            document.querySelectorAll('.s-tag').forEach(el => el.innerText = p + "時段");
-
-            document.getElementById('t-tl').innerText = (tl==18 && sec > targetBase + 1680 || tl==18 && sec < 27000) ? "現正最平" : fmt(diffTl);
-            const isCheap3T = (ch==20 && sec > targetBase + 2400 || ch==20 && sec < 27000);
-            document.getElementById('t-wh').innerText = isCheap3T ? "現正最平" : fmt(diffWh);
-            document.getElementById('t-ch').innerText = isCheap3T ? "現正最平" : fmt(diffWh);
-        }
-
-        setInterval(update, 1000); update();
     </script>
 </body>
 </html>
