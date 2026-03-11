@@ -7,133 +7,94 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="隧道收費">
     <link rel="apple-touch-icon" href="https://img.icons8.com">
-    <title>香港隧道即時收費 (私家車)</title>
+    <title>香港隧道收費</title>
     <style>
-        :root {
-            --bg: #f2f2f7;
-            --card-bg: #ffffff;
-            --primary: #007AFF;
-            --secondary: #5856D6;
-            --success: #34C759;
-            --warning: #FF9500;
-            --text: #1c1c1e;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
-            background-color: var(--bg);
-            margin: 0;
-            padding: calc(env(safe-area-inset-top) + 20px) 16px 40px;
-            color: var(--text);
-        }
-        .header { text-align: center; margin-bottom: 25px; }
-        #clock { font-size: 48px; font-weight: 700; margin: 0; letter-spacing: -1px; }
-        .period-pill { 
-            display: inline-block; background: var(--primary); color: white; 
-            padding: 6px 16px; border-radius: 20px; font-size: 15px; 
-            font-weight: 600; margin-top: 8px;
-        }
-        .main-card {
-            background: var(--card-bg); border-radius: 24px; padding: 24px;
-            margin-bottom: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            text-align: center; border: 1px solid rgba(0,0,0,0.05);
-        }
-        .tunnel-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-        .tunnel-item {
-            background: var(--card-bg); border-radius: 20px; padding: 15px 5px;
-            text-align: center; box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-        }
-        .label { font-size: 12px; color: #8e8e93; font-weight: 600; margin-bottom: 6px; }
-        .price { font-size: 28px; font-weight: 800; }
-        .price span { font-size: 14px; margin-right: 2px; }
-        .tai-lam-price { color: var(--secondary); font-size: 42px; }
-        .three-tunnel-price { color: var(--primary); }
-        .countdown-info {
-            background: var(--success); color: white; border-radius: 18px;
-            padding: 18px; margin-top: 20px; display: flex;
-            justify-content: space-between; align-items: center;
-            transition: background 0.3s ease;
-        }
-        .cd-label { font-weight: 600; font-size: 15px; }
-        .cd-value { font-weight: 800; font-size: 18px; text-align: right; }
-        .footer { text-align: center; font-size: 11px; color: #8e8e93; margin-top: 30px; line-height: 1.4; }
+        :root { --bg: #f2f2f7; --card: #ffffff; --text: #1c1c1e; --primary: #007AFF; --tl: #5856D6; --win: #34C759; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: calc(env(safe-area-inset-top) + 15px) 10px 20px; color: var(--text); }
+        .header { text-align: center; margin-bottom: 15px; }
+        #clock { font-size: 40px; font-weight: 800; margin: 0; letter-spacing: -1px; }
+        .tag { display: inline-block; background: var(--primary); color: white; padding: 4px 12px; border-radius: 15px; font-size: 13px; font-weight: 600; margin-top: 5px; }
+        
+        /* 四隧橫排網格 */
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 15px; }
+        .item { background: var(--card); border-radius: 14px; padding: 12px 2px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .name { font-size: 11px; color: #8e8e93; font-weight: 600; margin-bottom: 4px; white-space: nowrap; }
+        .price { font-size: 22px; font-weight: 800; }
+        .price span { font-size: 12px; margin-right: 1px; }
+        
+        .p-tl { color: var(--tl); }
+        .p-3t { color: var(--primary); }
+
+        .info-bar { background: var(--win); color: white; border-radius: 14px; padding: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 4px 12px rgba(52, 199, 89, 0.2); }
+        .info-label { font-size: 13px; font-weight: 600; }
+        .info-val { font-size: 15px; font-weight: 800; text-align: right; }
+        .footer { text-align: center; font-size: 10px; color: #8e8e93; margin-top: 20px; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <div id="clock">--:--</div>
-        <div class="period-pill" id="periodName">讀取中...</div>
+        <div class="tag" id="period">讀取中...</div>
     </div>
 
-    <div class="main-card">
-        <div class="label">大欖隧道 (TAI LAM)</div>
-        <div class="price tai-lam-price" id="p-tailam"><span>$</span>--</div>
+    <div class="grid">
+        <div class="item"><div class="name">大欖</div><div class="price p-tl" id="tl"><span>$</span>--</div></div>
+        <div class="item"><div class="name">西隧</div><div class="price p-3t" id="wh"><span>$</span>--</div></div>
+        <div class="item"><div class="name">紅隧</div><div class="price p-3t" id="ch"><span>$</span>--</div></div>
+        <div class="item"><div class="name">東隧</div><div class="price p-3t" id="eh"><span>$</span>--</div></div>
     </div>
 
-    <div class="tunnel-grid">
-        <div class="tunnel-item"><div class="label">西隧</div><div class="price three-tunnel-price" id="p-wht"><span>$</span>--</div></div>
-        <div class="tunnel-item"><div class="label">紅隧</div><div class="price three-tunnel-price" id="p-cht"><span>$</span>--</div></div>
-        <div class="tunnel-item"><div class="label">東隧</div><div class="price three-tunnel-price" id="p-eht"><span>$</span>--</div></div>
+    <div class="info-bar" id="cdBox">
+        <div class="info-label">距離平價時段</div>
+        <div class="info-val" id="cd">--</div>
     </div>
 
-    <div class="countdown-info" id="cdBox">
-        <div class="cd-label">距離平價時段</div>
-        <div class="cd-value" id="cdValue">--</div>
+    <div class="footer">
+        大欖自2025年5月收回後新收費：$45/$30/$18<br>
+        三隧分時段收費：$60/$40、$30、$20
     </div>
-
-    <div class="footer">數據參考 2025 新收費表</div>
 
     <script>
-        function formatTime(mins) {
+        function fmt(mins) {
             if (mins <= 0) return "現正平價";
-            if (mins < 60) return mins + " 分鐘";
-            const h = Math.floor(mins / 60);
-            const m = mins % 60;
-            return m === 0 ? h + " 小時" : h + " 小時 " + m + " 分鐘";
+            const h = Math.floor(mins / 60), m = mins % 60;
+            return h > 0 ? `${h}h ${m}m` : `${m}m`;
         }
 
         function update() {
-            const now = new Date();
-            const h = now.getHours();
-            const m = now.getMinutes();
-            const totalMins = h * 60 + m;
-            const day = now.getDay();
-            const isWD = (day >= 1 && day <= 5);
+            const n = new Date(), h = n.getHours(), m = n.getMinutes(), total = h * 60 + m, d = n.getDay();
+            document.getElementById('clock').innerText = n.toLocaleTimeString('zh-HK', {hour12:false, hour:'2-digit', minute:'2-digit'});
 
-            document.getElementById('clock').innerText = now.toLocaleTimeString('zh-HK', {hour12:false, hour:'2-digit', minute:'2-digit'});
+            let tl = 18, w = 20, x = 20, p = "非繁忙 (平)";
+            const isWD = d >= 1 && d <= 5, isSat = d === 6;
 
-            let tl = 18, w = 20, x = 20, p = "非繁忙時段";
-
-            if (isWD || day === 6) { // 平日及週六
-                if ((totalMins >= 450 && totalMins < 615) || (totalMins >= 1050 && totalMins < 1140)) { 
+            if (isWD || isSat) {
+                if ((total >= 450 && total < 615) || (total >= 1050 && total < 1140)) {
                     tl = 45; w = 60; x = 40; p = "繁忙時段";
-                } else if (totalMins >= 615 && totalMins < 1050) { 
+                } else if (total >= 615 && total < 1050) {
                     tl = 30; w = 30; x = 30; p = "一般時段";
                 }
             } else { // 星期日
-                if (totalMins >= 615 && totalMins < 1110) { 
-                    tl = 30; w = 25; x = 25; p = "一般時段";
-                }
+                if (total >= 615 && total < 1110) { tl = 30; w = 25; x = 25; p = "一般時段"; }
             }
 
-            document.getElementById('p-tailam').innerHTML = `<span>$</span>${tl}`;
-            document.getElementById('p-wht').innerHTML = `<span>$</span>${w}`;
-            document.getElementById('p-cht').innerHTML = `<span>$</span>${x}`;
-            document.getElementById('p-eht').innerHTML = `<span>$</span>${x}`;
-            document.getElementById('periodName').innerText = p;
+            document.getElementById('tl').innerHTML = `<span>$</span>${tl}`;
+            document.getElementById('wh').innerHTML = `<span>$</span>${w}`;
+            document.getElementById('ch').innerHTML = `<span>$</span>${x}`;
+            document.getElementById('eh').innerHTML = `<span>$</span>${x}`;
+            document.getElementById('period').innerText = p;
 
-            let cdVal = "";
-            if (p === "非繁忙時段") {
-                cdVal = "現正最平！";
-                document.getElementById('cdBox').style.background = "var(--success)";
+            const target = (d === 0) ? 1110 : 1140; // 日 18:30, 其他 19:00
+            if (p === "非繁忙 (平)") {
+                document.getElementById('cd').innerText = "最抵用！";
+                document.getElementById('cdBox').style.background = "var(--win)";
             } else {
-                let target = (day === 0) ? 1110 : 1140; // 星期日 18:30 平，其他 19:00 平
-                let diff = target - totalMins;
-                if (diff < 0) diff = (1440 - totalMins) + 450; // 若已過晚上平價，計聽朝
-                cdVal = formatTime(diff);
-                document.getElementById('cdBox').style.background = "var(--warning)";
+                let diff = target - total;
+                if (diff < 0) diff = (1440 - total) + 450;
+                document.getElementById('cd').innerText = fmt(diff);
+                document.getElementById('cdBox').style.background = "#FF9500";
             }
-            document.getElementById('cdValue').innerText = cdVal;
         }
         setInterval(update, 10000); update();
     </script>
