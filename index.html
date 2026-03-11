@@ -5,35 +5,118 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>隧道收費看板</title>
+    <title>隧道收費</title>
     <style>
-        :root { --bg: #f5f6f8; --card: #fff; --blue: #0047ab; --red: #e31d1a; --orange: #f58220; }
+        :root { --bg: #f5f6f8; --card: #fff; --blue: #0047ab; --red: #e31d1a; --orange: #f58220; --green: #34C759; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: env(safe-area-inset-top) 16px 30px; color: #333; -webkit-user-select: none; }
         .header { text-align: center; padding: 10px 0; }
         .header h1 { font-size: 22px; margin: 0; font-weight: 800; }
         #liveDate { font-size: 14px; color: #888; font-family: monospace; }
         
-        .card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 15px; position: relative; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; border-left: 10px solid transparent; transition: background 0.3s; }
+        .card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 15px; position: relative; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; border-left: 10px solid transparent; transition: all 0.3s; }
         .tl { border-color: var(--orange); } .wh { border-color: var(--blue); } .ch { border-color: var(--red); }
-        
+        .cheap-mode { border-left-color: var(--green) !important; background: #fafff9; }
+
         .t-name { font-size: 19px; font-weight: 800; margin-bottom: 4px; }
         .tl .t-name { color: var(--orange); } .wh .t-name { color: var(--blue); } .ch .t-name { color: var(--red); }
+        .cheap-mode .t-name { color: #1a7f37 !important; }
         
         .label { font-size: 12px; color: #999; font-weight: 600; }
         .price { font-size: 46px; font-weight: 900; margin: 0; letter-spacing: -2px; }
         .price::before { content: "$"; font-size: 22px; margin-right: 2px; }
         
         .right { text-align: right; min-width: 145px; }
-        .tag { font-size: 12px; font-weight: 700; color: #555; background: #eee; padding: 3px 8px; border-radius: 6px; margin-bottom: 10px; display: inline-block; }
+        .tag { font-size: 12px; font-weight: 700; color: white; background: #555; padding: 3px 8px; border-radius: 6px; margin-bottom: 10px; display: inline-block; }
+        .cheap-mode .tag { background: var(--green); }
+
         .cd-l { font-size: 14px; color: #666; font-weight: 700; margin-bottom: 2px; }
         .cd-t { font-size: 23px; font-weight: 800; font-family: 'SF Mono', monospace; }
         .tl .cd-t { color: var(--orange); } .wh .cd-t { color: var(--blue); } .ch .cd-t { color: var(--red); }
+        .cheap-mode .cd-t { color: var(--green) !important; }
         
         .footer { text-align: center; font-size: 11px; color: #aaa; line-height: 1.5; margin-top: 15px; }
     </style>
 </head>
 <body>
 
+    <div class="header">
+        <h1>隧道收費</h1>
+        <div id="liveDate">--</div>
+    </div>
+
+    <div class="card tl" id="c-tl">
+        <div><div class="t-name">大欖隧道 (TLT)</div><div class="label">目前收費</div><div class="price" id="p-tl">--</div></div>
+        <div class="right"><div class="tag" id="s-tl">--</div><div class="cd-l" id="l-tl">載入中</div><div class="cd-t" id="v-tl">--</div></div>
+    </div>
+
+    <div class="card wh" id="c-wh">
+        <div><div class="t-name">西隧 (WHC)</div><div class="label">目前收費</div><div class="price" id="p-wh">--</div></div>
+        <div class="right"><div class="tag" id="s-wh">--</div><div class="cd-l" id="l-wh">載入中</div><div class="cd-t" id="v-wh">--</div></div>
+    </div>
+
+    <div class="card ch" id="c-ch">
+        <div><div class="t-name">紅隧 / 東隧</div><div class="label">目前收費</div><div class="price" id="p-ch">--</div></div>
+        <div class="right"><div class="tag" id="s-ch">--</div><div class="cd-l" id="l-ch">載入中</div><div class="cd-t" id="v-ch">--</div></div>
+    </div>
+
+    <div class="footer">智能雙向倒數：<br>非繁忙時段會自動倒數至下一個「加價時段」</div>
+
+    <script>
+        const fmt = s => {
+            if (s < 0) s += 86400; 
+            return new Date(s * 1000).toISOString().substr(11, 8);
+        };
+
+        function update() {
+            const now = new Date(), h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+            const sec = h * 3600 + m * 60 + s, day = now.getDay();
+            document.getElementById('liveDate').innerText = now.toLocaleString('zh-HK', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+
+            let tl=18, wh=20, ch=20, p="非繁忙";
+            const isWD = day > 0; // 平日及週六
+            const morningStart = 7.5 * 3600; // 07:30 變貴
+
+            if (isWD) {
+                if ((sec >= 27000 && sec < 36900) || (sec >= 63000 && sec < 68400)) { tl=45; wh=60; ch=40; p="繁忙"; }
+                else if (sec >= 36900 && sec < 63000) { tl=30; wh=30; ch=30; p="一般"; }
+            } else if (sec >= 36900 && sec < 66600) { tl=30; wh=25; ch=25; p="一般"; }
+
+            const targetCheapBase = (day === 0 ? 18.5 : 19) * 3600;
+            const diffWhCheap = (targetCheapBase + 2400) - sec, diffTlCheap = (targetCheapBase + 1680) - sec;
+            const diffToMorning = morningStart - sec;
+
+            // 更新基礎顯示
+            document.getElementById('p-tl').innerText = tl;
+            document.getElementById('p-wh').innerText = wh;
+            document.getElementById('p-ch').innerText = ch;
+            document.querySelectorAll('.tag').forEach(el => el.innerText = p + "時段");
+
+            // 邏輯控制
+            const updateUI = (id, isCheap, diffCheap, diffMorning, price) => {
+                const card = document.getElementById('c-' + id), label = document.getElementById('l-' + id), val = document.getElementById('v-' + id);
+                if (isCheap) {
+                    card.classList.add('cheap-mode');
+                    label.innerText = "距離加價還有";
+                    val.innerText = fmt(diffMorning);
+                } else {
+                    card.classList.remove('cheap-mode');
+                    label.innerText = `距離 $${price} 還有`;
+                    val.innerText = fmt(diffCheap);
+                }
+            };
+
+            const realCheap3T = (ch==20 && sec > targetCheapBase + 2400 || ch==20 && sec < 27000);
+            const realCheapTL = (tl==18 && sec > targetCheapBase + 1680 || tl==18 && sec < 27000);
+
+            updateUI('tl', realCheapTL, diffTlCheap, diffToMorning, 18);
+            updateUI('wh', realCheap3T, diffWhCheap, diffToMorning, 20);
+            updateUI('ch', realCheap3T, diffWhCheap, diffToMorning, 20);
+        }
+
+        setInterval(update, 1000); update();
+    </script>
+</body>
+</html>
     <div class="header">
         <h1>隧道收費即時看板</h1>
         <div id="liveDate">--</div>
