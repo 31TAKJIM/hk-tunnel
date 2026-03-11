@@ -7,144 +7,86 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <title>隧道收費看板</title>
     <style>
-        :root { --bg: #f5f6f8; --card: #ffffff; --blue: #0047ab; --red: #e31d1a; --orange: #f58220; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: env(safe-area-inset-top) 16px 40px; color: #333; }
+        :root { --bg: #f5f6f8; --card: #fff; --blue: #0047ab; --red: #e31d1a; --orange: #f58220; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: env(safe-area-inset-top) 16px 30px; color: #333; -webkit-user-select: none; }
+        .header { text-align: center; padding: 10px 0; }
+        .header h1 { font-size: 22px; margin: 0; font-weight: 800; }
+        #liveDate { font-size: 14px; color: #888; font-family: monospace; }
         
-        .header { text-align: center; padding: 20px 0; }
-        .header h1 { font-size: 24px; margin: 0; color: #222; letter-spacing: 1px; }
-        .header .date { font-size: 14px; color: #888; margin-top: 5px; }
-
-        .card { 
-            background: var(--card); border-radius: 20px; padding: 20px; 
-            margin-bottom: 20px; position: relative; overflow: hidden;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05); display: flex; justify-content: space-between;
-        }
-        .card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 8px; }
+        .card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 15px; position: relative; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; justify-content: space-between; align-items: center; border-left: 10px solid transparent; transition: background 0.3s; }
+        .tl { border-color: var(--orange); } .wh { border-color: var(--blue); } .ch { border-color: var(--red); }
         
-        /* 顏色標示 */
-        .blue::before { background: var(--blue); }
-        .red::before { background: var(--red); }
-        .orange::before { background: var(--orange); }
-
-        .left-col { flex: 1; }
-        .right-col { text-align: right; width: 120px; }
-
-        .tunnel-name { font-size: 18px; font-weight: 800; margin-bottom: 8px; }
-        .blue .tunnel-name { color: var(--blue); }
-        .red .tunnel-name { color: var(--red); }
-        .orange .tunnel-name { color: var(--orange); }
-
-        .label { font-size: 12px; color: #bbb; font-weight: 600; margin-top: 5px; }
-        .price { font-size: 42px; font-weight: 900; margin: 5px 0; letter-spacing: -1px; }
-        .price::before { content: "$"; font-size: 24px; margin-right: 2px; }
-
-        .status-tag { font-size: 12px; font-weight: 600; color: #666; background: #eee; padding: 2px 8px; border-radius: 4px; display: inline-block; }
-        .cd-label { font-size: 11px; color: #999; margin-top: 15px; font-weight: 600; }
-        .cd-timer { font-size: 18px; font-weight: 800; font-family: 'Courier New', Courier, monospace; margin-top: 5px; }
-
-        .blue .cd-timer { color: var(--blue); }
-        .red .cd-timer { color: var(--red); }
-        .orange .cd-timer { color: var(--orange); }
+        .t-name { font-size: 19px; font-weight: 800; margin-bottom: 4px; }
+        .tl .t-name { color: var(--orange); } .wh .t-name { color: var(--blue); } .ch .t-name { color: var(--red); }
+        
+        .label { font-size: 12px; color: #999; font-weight: 600; }
+        .price { font-size: 46px; font-weight: 900; margin: 0; letter-spacing: -2px; }
+        .price::before { content: "$"; font-size: 22px; margin-right: 2px; }
+        
+        .right { text-align: right; min-width: 145px; }
+        .tag { font-size: 12px; font-weight: 700; color: #555; background: #eee; padding: 3px 8px; border-radius: 6px; margin-bottom: 10px; display: inline-block; }
+        .cd-l { font-size: 14px; color: #666; font-weight: 700; margin-bottom: 2px; }
+        .cd-t { font-size: 23px; font-weight: 800; font-family: 'SF Mono', monospace; }
+        .tl .cd-t { color: var(--orange); } .wh .cd-t { color: var(--blue); } .ch .cd-t { color: var(--red); }
+        
+        .footer { text-align: center; font-size: 11px; color: #aaa; line-height: 1.5; margin-top: 15px; }
     </style>
 </head>
 <body>
 
     <div class="header">
         <h1>隧道收費即時看板</h1>
-        <div class="date" id="liveDate">2026年3月11日 15:31:10</div>
+        <div id="liveDate">--</div>
     </div>
 
-    <!-- 西隧 -->
-    <div class="card blue">
-        <div class="left-col">
-            <div class="tunnel-name">西隧 (WHC)</div>
-            <div class="label">目前收費</div>
-            <div class="price" id="p-wh">30</div>
-        </div>
-        <div class="right-col">
-            <div class="status-tag" id="s-wh">一般/繁忙</div>
-            <div class="cd-label">距離 $20 仲有</div>
-            <div class="cd-timer" id="t-wh">00:00:00</div>
-        </div>
+    <div class="card tl">
+        <div><div class="t-name">大欖隧道 (TLT)</div><div class="label">目前收費</div><div class="price" id="p-tl">--</div></div>
+        <div class="right"><div class="tag s-tag">--</div><div class="cd-l">距離 $18 還有</div><div class="cd-t" id="t-tl">--</div></div>
     </div>
 
-    <!-- 紅隧 / 東隧 -->
-    <div class="card red">
-        <div class="left-col">
-            <div class="tunnel-name">紅隧 / 東隧</div>
-            <div class="label">目前收費</div>
-            <div class="price" id="p-cht">30</div>
-        </div>
-        <div class="right-col">
-            <div class="status-tag" id="s-cht">一般/繁忙</div>
-            <div class="cd-label">距離 $20 仲有</div>
-            <div class="cd-timer" id="t-cht">00:00:00</div>
-        </div>
+    <div class="card wh">
+        <div><div class="t-name">西隧 (WHC)</div><div class="label">目前收費</div><div class="price" id="p-wh">--</div></div>
+        <div class="right"><div class="tag s-tag">--</div><div class="cd-l">距離 $20 還有</div><div class="cd-t" id="t-wh">--</div></div>
     </div>
 
-    <!-- 大欖 -->
-    <div class="card orange">
-        <div class="left-col">
-            <div class="tunnel-name">大欖隧道 (TLT)</div>
-            <div class="label">目前收費</div>
-            <div class="price" id="p-tl">30</div>
-        </div>
-        <div class="right-col">
-            <div class="status-tag" id="s-tl">一般/繁忙</div>
-            <div class="cd-label" id="tl-cd-label">距離 $18 仲有</div>
-            <div class="cd-timer" id="t-tl">00:00:00</div>
-        </div>
+    <div class="card ch">
+        <div><div class="t-name">紅隧 / 東隧</div><div class="label">目前收費</div><div class="price" id="p-ch">--</div></div>
+        <div class="right"><div class="tag s-tag">--</div><div class="cd-l">距離 $20 還有</div><div class="cd-t" id="t-ch">--</div></div>
     </div>
+
+    <div class="footer">過渡收費已計算：每 2 分鐘 $2 跳表補償<br>倒數結束即為該時段之最低收費</div>
 
     <script>
-        function formatFullTime(diffSeconds) {
-            if (diffSeconds <= 0) return "00:00:00";
-            const h = Math.floor(diffSeconds / 3600).toString().padStart(2, '0');
-            const m = Math.floor((diffSeconds % 3600) / 60).toString().padStart(2, '0');
-            const s = (diffSeconds % 60).toString().padStart(2, '0');
-            return `${h}:${m}:${s}`;
-        }
+        const fmt = s => s <= 0 ? "現正最平" : new Date(s * 1000).toISOString().substr(11, 8);
 
         function update() {
-            const now = new Date();
-            document.getElementById('liveDate').innerText = now.toLocaleString('zh-HK', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
-            
-            const h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
-            const totalS = h * 3600 + m * 60 + s;
-            const day = now.getDay();
-            const isWD = (day >= 1 && day <= 5);
+            const now = new Date(), h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+            const sec = h * 3600 + m * 60 + s, day = now.getDay();
+            document.getElementById('liveDate').innerText = now.toLocaleString('zh-HK', {year:'numeric',month:'long',day:'numeric',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
 
-            let tl = 18, wh = 20, cht = 20, pName = "非繁忙";
-            let targetS = (day === 0) ? 18.5 * 3600 : 19 * 3600; // 星期日 18:30, 平日 19:00
+            let tl=18, wh=20, ch=20, p="非繁忙";
+            // 判定邏輯 (一至六相同, 日及假期不同)
+            if (day > 0) { // 平日及週六
+                if ((sec >= 27000 && sec < 36900) || (sec >= 63000 && sec < 68400)) { tl=45; wh=60; ch=40; p="繁忙"; }
+                else if (sec >= 36900 && sec < 63000) { tl=30; wh=30; ch=30; p="一般"; }
+            } else if (sec >= 36900 && sec < 66600) { tl=30; wh=25; ch=25; p="一般"; }
 
-            if (isWD || day === 6) {
-                if ((totalS >= 7.5*3600 && totalS < 10.25*3600) || (totalS >= 17.5*3600 && totalS < 19*3600)) {
-                    tl = 45; wh = 60; cht = 40; pName = "繁忙時段";
-                } else if (totalS >= 10.25*3600 && totalS < 17.5*3600) {
-                    tl = 30; wh = 30; cht = 30; pName = "一般時段";
-                }
-            } else if (totalS >= 10.25*3600 && totalS < 18.5*3600) {
-                tl = 30; wh = 25; cht = 25; pName = "一般時段";
-            }
+            // 過渡補償目標 (平日 19:40 三隧完全降至 $20; 大欖 19:28 完全降至 $18)
+            const targetBase = (day === 0 ? 18.5 : 19) * 3600;
+            const diffWh = (targetBase + 2400) - sec, diffTl = (targetBase + 1680) - sec;
 
-            // 更新數值
-            document.getElementById('p-wh').innerText = wh;
-            document.getElementById('p-cht').innerText = cht;
             document.getElementById('p-tl').innerText = tl;
-            document.querySelectorAll('.status-tag').forEach(el => el.innerText = pName);
+            document.getElementById('p-wh').innerText = wh;
+            document.getElementById('p-ch').innerText = ch;
+            document.querySelectorAll('.s-tag').forEach(el => el.innerText = p + "時段");
 
-            // 倒計時邏輯
-            let diff = targetS - totalS;
-            if (diff < 0) diff = (24*3600 - totalS) + 7.5*3600; // 聽朝 07:30
-            
-            const timeStr = formatFullTime(diff);
-            document.getElementById('t-wh').innerText = (wh==20) ? "最划算" : timeStr;
-            document.getElementById('t-cht').innerText = (cht==20) ? "最划算" : timeStr;
-            document.getElementById('t-tl').innerText = (tl==18) ? "最划算" : timeStr;
+            document.getElementById('t-tl').innerText = (tl==18 && sec > targetBase + 1680 || tl==18 && sec < 27000) ? "現正最平" : fmt(diffTl);
+            const isCheap3T = (ch==20 && sec > targetBase + 2400 || ch==20 && sec < 27000);
+            document.getElementById('t-wh').innerText = isCheap3T ? "現正最平" : fmt(diffWh);
+            document.getElementById('t-ch').innerText = isCheap3T ? "現正最平" : fmt(diffWh);
         }
 
-        setInterval(update, 1000);
-        update();
+        setInterval(update, 1000); update();
     </script>
 </body>
 </html>
