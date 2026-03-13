@@ -5,35 +5,136 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>隧道收費查詢</title>
+    <title>隧道收費即時查</title>
     <style>
         :root {
-            --bg-color: #f2f2f7; /* iOS 系統背景色 */
-            --card-bg: #ffffff;
-            --tlt-color: #ff9500; /* 大欖橘 */
-            --whc-color: #007aff; /* 西隧藍 */
-            --cht-color: #ff3b30; /* 紅隧紅 */
+            --bg-color: #f2f2f7;
+            --tlt-color: #ff9500;
+            --whc-color: #007aff;
+            --cht-color: #ff3b30;
         }
-
-        * { -webkit-tap-highlight-color: transparent; user-select: none; }
-
+        * { -webkit-tap-highlight-color: transparent; user-select: none; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
             background-color: var(--bg-color);
             margin: 0;
-            padding: calc(env(safe-area-inset-top) + 20px) 16px env(safe-area-inset-bottom);
-            color: #1c1c1e;
+            padding: calc(env(safe-area-inset-top) + 10px) 16px env(safe-area-inset-bottom);
         }
 
-        .header { text-align: center; margin-bottom: 24px; }
-        .header h1 { font-size: 28px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
-        .header p { font-size: 15px; color: #8e8e93; margin: 5px 0 0; font-variant-numeric: tabular-nums; }
+        /* 車種切換按鈕 */
+        .selector {
+            display: flex; background: #e3e3e8; border-radius: 12px;
+            padding: 2px; margin-bottom: 20px;
+        }
+        .selector button {
+            flex: 1; border: none; padding: 8px; border-radius: 10px;
+            font-size: 15px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s; background: transparent; color: #8e8e93;
+        }
+        .selector button.active { background: #fff; color: #000; shadow: 0 2px 4px rgba(0,0,0,0.1); }
 
         .card {
-            background: var(--card-bg);
-            border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 16px;
+            background: #fff; border-radius: 20px; padding: 20px;
+            margin-bottom: 16px; display: flex; justify-content: space-between;
+            align-items: center; border-left: 6px solid transparent;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .card.tlt { border-left-color: var(--tlt-color); }
+        .card.whc { border-left-color: var(--whc-color); }
+        .card.cht { border-left-color: var(--cht-color); }
+
+        .price-row { display: flex; align-items: baseline; margin-top: 8px; }
+        .price-row .symbol { font-size: 18px; font-weight: 700; margin-right: 2px; }
+        .price-row .amount { font-size: 40px; font-weight: 800; line-height: 1; }
+
+        .right-info { text-align: right; }
+        .tag { background: #3a3a3c; color: #fff; font-size: 11px; padding: 3px 8px; border-radius: 6px; margin-bottom: 10px; display: inline-block; }
+        .countdown { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+        
+        .tlt .countdown, .tlt h2 { color: var(--tlt-color); }
+        .whc .countdown, .whc h2 { color: var(--whc-color); }
+        .cht .countdown, .cht h2 { color: var(--cht-color); }
+        h2 { font-size: 17px; margin: 0; }
+        .next-label { font-size: 12px; color: #8e8e93; margin-bottom: 2px; }
+    </style>
+</head>
+<body>
+
+    <div class="selector">
+        <button id="btn-car" class="active" onclick="setVehicle('car')">私家車</button>
+        <button id="btn-moto" onclick="setVehicle('moto')">電單車</button>
+    </div>
+
+    <div id="app"></div>
+
+<script>
+    let currentVehicle = 'car';
+    const DATA = {
+        tlt: { name: '大欖隧道 (TLT)', schedule: [
+            { s: "00:00", e: "07:15", car: 18, moto: 7.2, nextS: "07:41", nextCar: 45, nextMoto: 18, tag: "深宵" },
+            { s: "07:15", e: "10:15", car: 45, moto: 18, nextS: "10:41", nextCar: 30, nextMoto: 12, tag: "繁忙" },
+            { s: "10:15", e: "16:30", car: 30, moto: 12, nextS: "16:56", nextCar: 45, nextMoto: 18, tag: "一般" },
+            { s: "16:30", e: "19:00", car: 45, moto: 18, nextS: "19:26", nextCar: 18, nextMoto: 7.2, tag: "繁忙" },
+            { s: "19:00", e: "23:59", car: 18, moto: 7.2, nextS: "07:41", nextCar: 45, nextMoto: 18, tag: "深宵" }
+        ]},
+        whc: { name: '西隧 (WHC)', schedule: [
+            { s: "00:00", e: "07:30", car: 20, moto: 8, nextS: "08:08", nextCar: 60, nextMoto: 24, tag: "深宵" },
+            { s: "07:30", e: "10:15", car: 60, moto: 24, nextS: "10:43", nextCar: 30, nextMoto: 12, tag: "繁忙" },
+            { s: "10:15", e: "16:30", car: 30, moto: 12, nextS: "16:58", nextCar: 60, nextMoto: 24, tag: "一般" },
+            { s: "16:30", e: "19:00", car: 60, moto: 24, nextS: "19:38", nextCar: 20, nextMoto: 8, tag: "繁忙" },
+            { s: "19:00", e: "23:59", car: 20, moto: 8, nextS: "08:08", nextCar: 60, nextMoto: 24, tag: "深宵" }
+        ]},
+        cht: { name: '紅隧 / 東隧', schedule: [
+            { s: "00:00", e: "07:30", car: 20, moto: 8, nextS: "08:08", nextCar: 40, nextMoto: 16, tag: "深宵" },
+            { s: "07:30", e: "10:15", car: 40, moto: 16, nextS: "10:43", nextCar: 30, nextMoto: 12, tag: "繁忙" },
+            { s: "10:15", e: "16:30", car: 30, moto: 12, nextS: "16:58", nextCar: 40, nextMoto: 16, tag: "一般" },
+            { s: "16:30", e: "19:00", car: 40, moto: 16, nextS: "19:38", nextCar: 20, nextMoto: 8, tag: "繁忙" },
+            { s: "19:00", e: "23:59", car: 20, moto: 8, nextS: "08:08", nextCar: 40, nextMoto: 16, tag: "深宵" }
+        ]}
+    };
+
+    function setVehicle(v) {
+        currentVehicle = v;
+        document.getElementById('btn-car').className = v === 'car' ? 'active' : '';
+        document.getElementById('btn-moto').className = v === 'moto' ? 'active' : '';
+        update();
+    }
+
+    function update() {
+        const now = new Date();
+        const sec = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+        let html = '';
+
+        for (let k in DATA) {
+            const t = DATA[k];
+            const slot = t.schedule.find(s => {
+                const start = s.s.split(':').map(Number);
+                const end = s.e.split(':').map(Number);
+                const s_sec = start[0]*3600 + start[1]*60;
+                const e_sec = end[0]*3600 + end[1]*60;
+                return sec >= s_sec && sec < e_sec;
+            }) || t.schedule[t.schedule.length-1];
+
+            const fee = currentVehicle === 'car' ? slot.car : slot.moto;
+            const nextFee = currentVehicle === 'car' ? slot.nextCar : slot.nextMoto;
+            
+            const targetParts = slot.nextS.split(':').map(Number);
+            let targetSec = targetParts[0]*3600 + targetParts[1]*60;
+            if (targetSec <= sec) targetSec += 86400;
+            const diff = targetSec - sec;
+            const h = String(Math.floor(diff/3600)).padStart(2,'0'), m = String(Math.floor((diff%3600)/60)).padStart(2,'0'), s = String(diff%60).padStart(2,'0');
+
+            html += `<div class="card ${k}">
+                <div><h2>${t.name}</h2><div class="price-row"><span class="symbol">$</span><span class="amount">${fee}</span></div></div>
+                <div class="right-info"><div class="tag">${slot.tag}</div><div class="next-label">距離 $${nextFee}</div><div class="countdown">${h}:${m}:${s}</div></div>
+            </div>`;
+        }
+        document.getElementById('app').innerHTML = html;
+    }
+    setInterval(update, 1000); update();
+</script>
+</body>
+</html>
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             display: flex;
             justify-content: space-between;
