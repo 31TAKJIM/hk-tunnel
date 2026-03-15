@@ -1,0 +1,15 @@
+{
+  "name": "香港隧道費查詢",
+  "short_name": "隧道費",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f2f2f7",
+  "theme_color": "#f2f2f7",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
