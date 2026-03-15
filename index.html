@@ -3,46 +3,31 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <!-- iOS 圖標與啟動畫面優化 -->
-    <link rel="apple-touch-icon" href="icon.png">
-    <meta name="apple-mobile-web-app-title" content="隧道費">
-    <meta name="theme-color" content="#f2f2f7">
-
     <title>隧道費查詢 2026</title>
     <style>
-        :root {
-            --bg: #f2f2f7; --card: #ffffff; --tlt: #ff9500;
-            --whc: #007aff; --cht: #ff3b30; --text: #1c1c1e; --sub: #8e8e93;
-        }
+        :root { --bg: #f2f2f7; --card: #ffffff; --tlt: #ff9500; --whc: #007aff; --cht: #ff3b30; --text: #1c1c1e; --sub: #8e8e93; --warn: #ffcc00; }
         * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, "SF Pro Display", "Helvetica Neue", sans-serif;
-            background-color: var(--bg); margin: 0;
-            padding: calc(env(safe-area-inset-top) + 15px) 16px env(safe-area-inset-bottom);
-            color: var(--text); line-height: 1.4;
-        }
+        body { font-family: -apple-system, sans-serif; background-color: var(--bg); margin: 0; padding: calc(env(safe-area-inset-top) + 15px) 16px env(safe-area-inset-bottom); color: var(--text); }
         .header { margin-bottom: 20px; }
-        .header h1 { font-size: 32px; font-weight: 800; margin: 0; letter-spacing: -0.5px; }
-        #clock { font-size: 15px; color: var(--sub); font-variant-numeric: tabular-nums; font-weight: 500; }
-        
+        .header h1 { font-size: 32px; font-weight: 800; margin: 0; }
+        #clock { font-size: 15px; color: var(--sub); font-variant-numeric: tabular-nums; }
         .selector { display: flex; background: #e3e3e8; border-radius: 12px; padding: 2px; margin-bottom: 20px; position: sticky; top: 10px; z-index: 100; }
-        .selector button { flex: 1; border: none; padding: 10px; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; background: transparent; color: var(--sub); transition: all 0.2s; }
+        .selector button { flex: 1; border: none; padding: 10px; border-radius: 10px; font-size: 16px; font-weight: 600; background: transparent; color: var(--sub); }
         .selector button.active { background: #fff; color: #000; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-
         .card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 6px solid transparent; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
         .card.tlt { border-left-color: var(--tlt); }
         .card.whc { border-left-color: var(--whc); }
         .card.cht { border-left-color: var(--cht); }
-        .name { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
         .amount { font-size: 44px; font-weight: 900; letter-spacing: -1px; }
         .right { text-align: right; }
-        .tag { background: #3a3a3c; color: #fff; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 600; margin-bottom: 8px; display: inline-block; }
+        .tag { background: #3a3a3c; color: #fff; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 600; display: inline-block; margin-bottom: 8px; }
+        .tag.transition { background: var(--warn); color: #000; }
         .next-label { font-size: 12px; color: var(--sub); font-weight: 500; }
-        .countdown { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; margin-top: 2px; }
-        
-        .footer { font-size: 11px; color: #aeaeb2; text-align: center; padding: 20px 0; line-height: 1.5; }
+        .countdown { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .footer { font-size: 11px; color: #aeaeb2; text-align: center; padding: 20px 0; }
     </style>
 </head>
 <body>
@@ -59,10 +44,7 @@
 
 <div id="app"></div>
 
-<div class="footer">
-    2026 方案｜倒數至過渡期結束（+22分鐘）<br>
-    大欖假日劃一 $18 / $7.2
-</div>
+<div class="footer">2026 方案｜黃色標籤代表正在進行 22 分鐘階梯式變價</div>
 
 <script>
     let vehicle = 'car';
@@ -93,11 +75,7 @@
     ];
 
     const toS = (str) => { const [h, m] = str.split(':').map(Number); return h * 3600 + m * 60; };
-    const addTransition = (timeStr) => { 
-        let s = toS(timeStr) + 1320; // 22分鐘 = 1320秒
-        return s >= 86400 ? s - 86400 : s;
-    };
-
+    
     function setVehicle(v) {
         vehicle = v;
         document.getElementById('btn-car').className = v === 'car' ? 'active' : '';
@@ -107,55 +85,58 @@
     function render() {
         const now = new Date();
         const curS = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-        const dateKey = now.toLocaleDateString('en-CA'); // YYYY-MM-DD
+        const dateKey = now.toLocaleDateString('en-CA');
         const isRedDay = now.getDay() === 0 || HOLIDAYS.includes(dateKey);
 
         document.getElementById('clock').textContent = now.toLocaleString('zh-HK', { hour12: false });
 
         let html = '';
         TUNNELS.forEach(tn => {
-            let slot, targetS = null, nextFee;
+            let slot, targetS = null, nextFee, label, isTransitioning = false;
             
             if (isRedDay && tn.id === 'tlt') {
                 slot = { t: "假日劃一", car: 18, moto: 7.2 };
-            } else if (isRedDay) {
-                const isGeneral = curS >= toS("10:15") && curS < toS("19:15");
-                slot = isGeneral ? { t: "假日一般", car: 25, moto: 10 } : { t: "假日非繁忙", car: 20, moto: 8 };
-                targetS = isGeneral ? addTransition("19:15") : addTransition("10:15");
-                nextFee = isGeneral ? (vehicle === 'car' ? 20 : 8) : (vehicle === 'car' ? 25 : 10);
+                label = "假日劃一";
             } else {
-                slot = tn.schedule.find(s => curS >= toS(s.s) && curS < toS(s.e)) || tn.schedule[4];
-                targetS = addTransition(slot.nS);
-                nextFee = vehicle === 'car' ? slot.nC : slot.nM;
+                if (isRedDay) {
+                    const isGeneral = curS >= toS("10:15") && curS < toS("19:15");
+                    slot = isGeneral ? { t: "假日一般", car: 25, moto: 10, s: "10:15" } : { t: "假日非繁忙", car: 20, moto: 8, s: "19:15" };
+                    targetS = isGeneral ? toS("19:15") + 1320 : toS("10:15") + 1320;
+                    nextFee = isGeneral ? (vehicle === 'car' ? 20 : 8) : (vehicle === 'car' ? 25 : 10);
+                } else {
+                    slot = tn.schedule.find(s => curS >= toS(s.s) && curS < toS(s.e)) || tn.schedule[4];
+                    targetS = toS(slot.nS) + 1320;
+                    nextFee = vehicle === 'car' ? slot.nC : slot.nM;
+                }
+                
+                // 判斷是否處於過渡 22 分鐘內
+                const startTime = toS(slot.s);
+                if (curS >= startTime && curS < startTime + 1320 && startTime !== 0) {
+                    isTransitioning = true;
+                }
+                label = slot.t;
             }
 
-            const currentFee = vehicle === 'car' ? slot.car : slot.moto;
-            let timeDisplay = "--:--:--";
-            
-            if (targetS !== null) {
-                let diff = targetS - curS;
-                if (diff <= 0) diff += 86400;
-                timeDisplay = `${String(Math.floor(diff/3600)).padStart(2,'0')}:${String(Math.floor((diff%3600)/60)).padStart(2,'0')}:${String(diff%60).padStart(2,'0')}`;
-            }
+            let diff = targetS ? (targetS - curS) : 0;
+            if (diff <= 0 && targetS) diff += 86400;
+            const timeStr = targetS ? `${String(Math.floor(diff/3600)).padStart(2,'0')}:${String(Math.floor((diff%3600)/60)).padStart(2,'0')}:${String(diff%60).padStart(2,'0')}` : "--:--:--";
 
             html += `
                 <div class="card ${tn.id}">
                     <div class="left">
                         <div class="name">${tn.label}</div>
-                        <div class="amount">$${currentFee}</div>
+                        <div class="amount">$${vehicle === 'car' ? slot.car : slot.moto}</div>
                     </div>
                     <div class="right">
-                        <div class="tag">${slot.t}</div>
-                        <div class="next-label">${targetS === null ? '全日收費不變' : `距離過渡完 $${nextFee}`}</div>
-                        <div class="countdown">${timeDisplay}</div>
+                        <div class="tag ${isTransitioning ? 'transition' : ''}">${isTransitioning ? '過渡中' : label}</div>
+                        <div class="next-label">${targetS ? `距離過渡完 $${nextFee}` : '全日劃一'}</div>
+                        <div class="countdown">${timeStr}</div>
                     </div>
                 </div>`;
         });
-
         document.getElementById('app').innerHTML = html;
         requestAnimationFrame(render);
     }
-
     requestAnimationFrame(render);
 </script>
 </body>
