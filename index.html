@@ -75,11 +75,22 @@
     ];
 
     const toS = (str) => { const [h, m] = str.split(':').map(Number); return h * 3600 + m * 60; };
-    
+
     function setVehicle(v) {
         vehicle = v;
         document.getElementById('btn-car').className = v === 'car' ? 'active' : '';
         document.getElementById('btn-moto').className = v === 'moto' ? 'active' : '';
+    }
+
+    function getTransitionPrice(prevFee, currentFee, elapsedSec, isMoto) {
+        const stepSec = 120; // 2分鐘跳一次
+        const stepAmt = isMoto ? 0.8 : 2; // 每次跳動金額
+        const stepsPassed = Math.floor(elapsedSec / stepSec);
+        if (currentFee > prevFee) {
+            return Math.min(currentFee, prevFee + (stepsPassed * stepAmt));
+        } else {
+            return Math.max(currentFee, prevFee - (stepsPassed * stepAmt));
+        }
     }
 
     function render() {
@@ -87,34 +98,56 @@
         const curS = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
         const dateKey = now.toLocaleDateString('en-CA');
         const isRedDay = now.getDay() === 0 || HOLIDAYS.includes(dateKey);
+        const isMoto = vehicle === 'moto';
 
         document.getElementById('clock').textContent = now.toLocaleString('zh-HK', { hour12: false });
 
         let html = '';
         TUNNELS.forEach(tn => {
-            let slot, targetS = null, nextFee, label, isTransitioning = false;
+            let slot, targetS = null, label, isTransitioning = false, displayFee;
             
             if (isRedDay && tn.id === 'tlt') {
-                slot = { t: "假日劃一", car: 18, moto: 7.2 };
+                displayFee = isMoto ? 7.2 : 18;
                 label = "假日劃一";
+                targetS = null;
             } else {
+                // 處理西隧、紅東隧假日邏輯
                 if (isRedDay) {
                     const isGeneral = curS >= toS("10:15") && curS < toS("19:15");
-                    slot = isGeneral ? { t: "假日一般", car: 25, moto: 10, s: "10:15" } : { t: "假日非繁忙", car: 20, moto: 8, s: "19:15" };
-                    targetS = isGeneral ? toS("19:15") + 1320 : toS("10:15") + 1320;
-                    nextFee = isGeneral ? (vehicle === 'car' ? 20 : 8) : (vehicle === 'car' ? 25 : 10);
+                    const startTime = isGeneral ? toS("10:15") : toS("19:15");
+                    const prevFee = isGeneral ? (isMoto ? 8 : 20) : (isMoto ? 10 : 25);
+                    const targetFee = isGeneral ? (isMoto ? 10 : 25) : (isMoto ? 8 : 20);
+                    
+                    const elapsed = curS - startTime;
+                    if (elapsed >= 0 && elapsed < 1320) {
+                        isTransitioning = true;
+                        displayFee = getTransitionPrice(prevFee, targetFee, elapsed, isMoto);
+                        targetS = startTime + 1320;
+                    } else {
+                        displayFee = targetFee;
+                        targetS = isGeneral ? toS("19:15") : toS("10:15");
+                    }
+                    label = isGeneral ? "假日一般" : "假日非繁忙";
                 } else {
+                    // 平日邏輯
                     slot = tn.schedule.find(s => curS >= toS(s.s) && curS < toS(s.e)) || tn.schedule[4];
-                    targetS = toS(slot.nS) + 1320;
-                    nextFee = vehicle === 'car' ? slot.nC : slot.nM;
+                    const startTime = toS(slot.s);
+                    const targetFee = isMoto ? slot.moto : slot.car;
+                    
+                    const elapsed = curS - startTime;
+                    if (elapsed >= 0 && elapsed < 1320 && startTime !== 0) {
+                        isTransitioning = true;
+                        const prevSlotIndex = (tn.schedule.indexOf(slot) - 1 + 5) % 5;
+                        const prevSlot = tn.schedule[prevSlotIndex];
+                        const prevFee = isMoto ? prevSlot.moto : prevSlot.car;
+                        displayFee = getTransitionPrice(prevFee, targetFee, elapsed, isMoto);
+                        targetS = startTime + 1320;
+                    } else {
+                        displayFee = targetFee;
+                        targetS = toS(slot.nS);
+                    }
+                    label = slot.t;
                 }
-                
-                // 判斷是否處於過渡 22 分鐘內
-                const startTime = toS(slot.s);
-                if (curS >= startTime && curS < startTime + 1320 && startTime !== 0) {
-                    isTransitioning = true;
-                }
-                label = slot.t;
             }
 
             let diff = targetS ? (targetS - curS) : 0;
@@ -125,11 +158,11 @@
                 <div class="card ${tn.id}">
                     <div class="left">
                         <div class="name">${tn.label}</div>
-                        <div class="amount">$${vehicle === 'car' ? slot.car : slot.moto}</div>
+                        <div class="amount">$${displayFee.toFixed(1).replace('.0', '')}</div>
                     </div>
                     <div class="right">
-                        <div class="tag ${isTransitioning ? 'transition' : ''}">${isTransitioning ? '過渡中' : label}</div>
-                        <div class="next-label">${targetS ? `距離過渡完 $${nextFee}` : '全日劃一'}</div>
+                        <div class="tag ${isTransitioning ? 'transition' : ''}">${isTransitioning ? '變價中' : label}</div>
+                        <div class="next-label">${isTransitioning ? '距離穩定收費' : '距離下一時段'}</div>
                         <div class="countdown">${timeStr}</div>
                     </div>
                 </div>`;
