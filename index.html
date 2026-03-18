@@ -4,9 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <link rel="manifest" href="manifest.json">
+    <!-- PWA 相關 meta -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="隧道費查詢">
     <meta name="theme-color" content="#f2f2f7">
+    <!-- iOS icon -->
+    <link rel="apple-touch-icon" href="icons/icon-152.png">
     <title>隧道費查詢 2026</title>
     <style>
         /* ===== 變數定義 ===== */
@@ -29,6 +33,12 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+        }
+
+        /* Touch 優化：消除點擊延遲 */
+        button, .card {
+            touch-action: manipulation;
+            cursor: pointer;
         }
 
         body {
@@ -54,6 +64,61 @@
         @keyframes loading {
             0% { background-position: 200% 0; }
             100% { background-position: -200% 0; }
+        }
+
+        /* ===== PWA 安裝提示 ===== */
+        .install-prompt {
+            background: linear-gradient(135deg, #007aff, #0051a8);
+            color: white;
+            padding: 16px 20px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            display: none;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 8px 20px rgba(0,122,255,0.3);
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .install-prompt .message {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .install-prompt .close {
+            background: rgba(255,255,255,0.3);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 16px;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            touch-action: manipulation;
+        }
+
+        /* ===== 離線提示 ===== */
+        .offline-banner {
+            background: #ff3b30;
+            color: white;
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            display: none;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
         }
 
         /* ===== 頂部區域 ===== */
@@ -109,6 +174,7 @@
             color: var(--sub);
             cursor: pointer;
             transition: all 0.2s ease;
+            touch-action: manipulation;
         }
 
         .selector button.active {
@@ -132,11 +198,13 @@
             transition: all 0.2s ease;
             backdrop-filter: blur(10px);
             -webkit-backdrop-filter: blur(10px);
+            touch-action: manipulation;
         }
 
-        .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+        /* Touch 優化：移除 hover 效果，改為 active 效果 */
+        .card:active {
+            transform: scale(0.98);
+            opacity: 0.9;
         }
 
         .card.tlt { border-left-color: var(--tlt); }
@@ -216,6 +284,15 @@
 </head>
 <body>
 
+<!-- 離線提示 -->
+<div id="offline-banner" class="offline-banner">📡 你目前處於離線狀態，顯示可能係快取資料</div>
+
+<!-- PWA 安裝提示 -->
+<div id="install-prompt" class="install-prompt">
+    <span class="message">📱 將此 App 加入主畫面</span>
+    <button class="close" id="close-install-prompt">✕</button>
+</div>
+
 <div class="header">
     <h1>隧道費查詢</h1>
     <div id="clock">--:--:--</div>
@@ -233,7 +310,7 @@
     <div class="skeleton"></div>
 </div>
 
-<div class="footer">最後更新：19.3.2026</div>
+<div class="footer" id="footer">最後更新：19.3.2026</div>
 
 <script>
     (function() {
@@ -245,7 +322,8 @@
             STEP_SECONDS: 120,                 // 2分鐘一跳
             STEP_AMOUNT: { car: 2, moto: 0.8 }, // 每跳金額
             HOLIDAY_FLAT_RATE: { car: 18, moto: 7.2 }, // 大欖假日劃一
-            STORAGE_KEY: 'preferredVehicle'
+            STORAGE_KEY: 'preferredVehicle',
+            INSTALL_PROMPT_KEY: 'installPromptClosed'
         };
 
         // 2026年公眾假期
@@ -297,6 +375,7 @@
         // ==================== 狀態變數 ====================
         let vehicle = localStorage.getItem(CONFIG.STORAGE_KEY) || 'car';
         let isInitialRender = true;
+        let deferredPrompt; // 用於 PWA 安裝
 
         // ==================== 工具函數 ====================
         const timeToSeconds = (timeStr) => {
@@ -316,6 +395,92 @@
             const secs = seconds % 60;
             return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         };
+
+        // 更新 footer 日期
+        const updateFooter = () => {
+            const today = new Date();
+            const day = today.getDate();
+            const month = today.getMonth() + 1;
+            const year = today.getFullYear();
+            document.getElementById('footer').textContent = `最後更新：${day}.${month}.${year}`;
+        };
+
+        // ==================== PWA 相關 ====================
+        // 註冊 Service Worker
+        function registerServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('sw.js').then(reg => {
+                        console.log('Service Worker 註冊成功', reg);
+                        
+                        // 檢查更新
+                        reg.addEventListener('updatefound', () => {
+                            const newWorker = reg.installing;
+                            newWorker.addEventListener('statechange', () => {
+                                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                    // 有新版本可用，可以提示用戶
+                                    console.log('新版本已就緒');
+                                }
+                            });
+                        });
+                    }).catch(err => {
+                        console.log('Service Worker 註冊失敗', err);
+                    });
+                });
+            }
+        }
+
+        // 處理安裝提示
+        function setupInstallPrompt() {
+            const installPrompt = document.getElementById('install-prompt');
+            const closeBtn = document.getElementById('close-install-prompt');
+            
+            // 檢查是否曾經關閉過提示
+            const isClosed = localStorage.getItem(CONFIG.INSTALL_PROMPT_KEY);
+            if (isClosed) return;
+
+            window.addEventListener('beforeinstallprompt', (e) => {
+                e.preventDefault();
+                deferredPrompt = e;
+                
+                // 顯示安裝提示
+                installPrompt.style.display = 'flex';
+                
+                // 點擊提示安裝
+                installPrompt.addEventListener('click', () => {
+                    installPrompt.style.display = 'none';
+                    deferredPrompt.prompt();
+                    deferredPrompt.userChoice.then((choiceResult) => {
+                        if (choiceResult.outcome === 'accepted') {
+                            console.log('用戶安裝了 App');
+                        }
+                        deferredPrompt = null;
+                    });
+                });
+            });
+
+            // 關閉提示
+            closeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                installPrompt.style.display = 'none';
+                localStorage.setItem(CONFIG.INSTALL_PROMPT_KEY, 'true');
+            });
+        }
+
+        // 離線狀態監測
+        function setupOfflineDetection() {
+            const offlineBanner = document.getElementById('offline-banner');
+            
+            function updateOnlineStatus() {
+                offlineBanner.style.display = navigator.onLine ? 'none' : 'block';
+            }
+            
+            window.addEventListener('online', updateOnlineStatus);
+            window.addEventListener('offline', updateOnlineStatus);
+            
+            // 初始檢查
+            updateOnlineStatus();
+        }
 
         // ==================== 核心邏輯 ====================
         function getTransitionPrice(prevFee, targetFee, elapsedSec, isMoto) {
@@ -343,11 +508,42 @@
             
             // 大欖隧道假日特別處理
             if (isRedDay && tunnel.id === 'tlt') {
-                const fee = isMoto ? CONFIG.HOLIDAY_FLAT_RATE.moto : CONFIG.HOLIDAY_FLAT_RATE.car;
+                // 加入過渡期檢查
+                const targetFee = isMoto ? CONFIG.HOLIDAY_FLAT_RATE.moto : CONFIG.HOLIDAY_FLAT_RATE.car;
+                
+                // 由深宵過渡到假日劃一 (07:15)
+                const transitionStart = timeToSeconds("07:15");
+                if (currentSeconds >= transitionStart && currentSeconds < transitionStart + CONFIG.TRANSITION_DURATION) {
+                    const elapsed = currentSeconds - transitionStart;
+                    const prevFee = isMoto ? 7.2 : 18; // 深宵收費
+                    
+                    return {
+                        fee: getTransitionPrice(prevFee, targetFee, elapsed, isMoto),
+                        label: '假日劃一',
+                        nextTarget: transitionStart + CONFIG.TRANSITION_DURATION,
+                        isTransitioning: true
+                    };
+                }
+                
+                // 由假日劃一過渡回深宵 (00:00)
+                const nightTransitionStart = timeToSeconds("00:00");
+                if (currentSeconds >= nightTransitionStart && currentSeconds < nightTransitionStart + CONFIG.TRANSITION_DURATION) {
+                    const elapsed = currentSeconds - nightTransitionStart;
+                    const prevFee = targetFee;
+                    const nextFee = isMoto ? 7.2 : 18;
+                    
+                    return {
+                        fee: getTransitionPrice(prevFee, nextFee, elapsed, isMoto),
+                        label: '假日劃一',
+                        nextTarget: nightTransitionStart + CONFIG.TRANSITION_DURATION,
+                        isTransitioning: true
+                    };
+                }
+                
                 return {
-                    fee,
+                    fee: targetFee,
                     label: '假日劃一',
-                    nextTarget: null,
+                    nextTarget: timeToSeconds("00:00") + 86400, // 下一日深宵
                     isTransitioning: false
                 };
             }
@@ -445,6 +641,11 @@
             // 更新按鈕狀態
             document.getElementById('btn-car').className = v === 'car' ? 'active' : '';
             document.getElementById('btn-moto').className = v === 'moto' ? 'active' : '';
+            
+            // 震動反饋 (可選)
+            if (navigator.vibrate) {
+                navigator.vibrate(10);
+            }
         }
 
         function render() {
@@ -517,14 +718,23 @@
             // 立即執行一次渲染
             render();
             
-            // 每秒更新一次 (取代 requestAnimationFrame)
+            // 每秒更新一次
             setInterval(render, 1000);
+            
+            // 每日更新 footer
+            updateFooter();
+            setInterval(updateFooter, 86400000); // 24小時
             
             // 加入鍵盤支援
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'c' || e.key === 'C') setVehicle('car');
                 if (e.key === 'm' || e.key === 'M') setVehicle('moto');
             });
+            
+            // PWA 設定
+            registerServiceWorker();
+            setupInstallPrompt();
+            setupOfflineDetection();
         }
 
         // 等待 DOM 載入完成
