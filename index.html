@@ -6,28 +6,212 @@
     <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#f2f2f7">
     <title>隧道費查詢 2026</title>
     <style>
-        :root { --bg: #f2f2f7; --card: #ffffff; --tlt: #ff9500; --whc: #007aff; --cht: #ff3b30; --text: #1c1c1e; --sub: #8e8e93; --warn: #ffcc00; }
-        * { -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
-        body { font-family: -apple-system, sans-serif; background-color: var(--bg); margin: 0; padding: calc(env(safe-area-inset-top) + 15px) 16px env(safe-area-inset-bottom); color: var(--text); }
-        .header { margin-bottom: 20px; }
-        .header h1 { font-size: 32px; font-weight: 800; margin: 0; }
-        #clock { font-size: 15px; color: var(--sub); font-variant-numeric: tabular-nums; }
-        .selector { display: flex; background: #e3e3e8; border-radius: 12px; padding: 2px; margin-bottom: 20px; position: sticky; top: 10px; z-index: 100; }
-        .selector button { flex: 1; border: none; padding: 10px; border-radius: 10px; font-size: 16px; font-weight: 600; background: transparent; color: var(--sub); }
-        .selector button.active { background: #fff; color: #000; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        .card { background: var(--card); border-radius: 20px; padding: 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 6px solid transparent; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        /* ===== 變數定義 ===== */
+        :root {
+            --bg: #f2f2f7;
+            --card: #ffffff;
+            --tlt: #ff9500;
+            --whc: #007aff;
+            --cht: #ff3b30;
+            --text: #1c1c1e;
+            --sub: #8e8e93;
+            --warn: #ffcc00;
+            --selector-bg: #e3e3e8;
+            --shadow: 0 8px 16px rgba(0,0,0,0.05);
+        }
+
+        /* ===== 重置與基礎 ===== */
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: calc(env(safe-area-inset-top) + 15px) 16px env(safe-area-inset-bottom);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.4;
+        }
+
+        /* ===== 載入動畫 ===== */
+        .skeleton {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 200% 100%;
+            animation: loading 1.5s infinite;
+            border-radius: 20px;
+            height: 120px;
+            margin-bottom: 12px;
+        }
+
+        @keyframes loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* ===== 頂部區域 ===== */
+        .header {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            margin: 0;
+            background: linear-gradient(135deg, #1c1c1e 0%, #3a3a3c 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        #clock {
+            font-size: 17px;
+            color: var(--sub);
+            font-variant-numeric: tabular-nums;
+            font-weight: 600;
+            background: rgba(142, 142, 147, 0.1);
+            padding: 6px 12px;
+            border-radius: 20px;
+        }
+
+        /* ===== 車輛選擇器 ===== */
+        .selector {
+            display: flex;
+            background: var(--selector-bg);
+            border-radius: 16px;
+            padding: 4px;
+            margin-bottom: 20px;
+            position: sticky;
+            top: 10px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .selector button {
+            flex: 1;
+            border: none;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 17px;
+            font-weight: 600;
+            background: transparent;
+            color: var(--sub);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .selector button.active {
+            background: #fff;
+            color: #000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transform: scale(1.02);
+        }
+
+        /* ===== 隧道卡片 ===== */
+        .card {
+            background: var(--card);
+            border-radius: 24px;
+            padding: 22px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-left: 6px solid transparent;
+            box-shadow: var(--shadow);
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.08);
+        }
+
         .card.tlt { border-left-color: var(--tlt); }
         .card.whc { border-left-color: var(--whc); }
         .card.cht { border-left-color: var(--cht); }
-        .amount { font-size: 44px; font-weight: 900; letter-spacing: -1px; }
-        .right { text-align: right; }
-        .tag { background: #3a3a3c; color: #fff; font-size: 11px; padding: 4px 8px; border-radius: 6px; font-weight: 600; display: inline-block; margin-bottom: 8px; }
-        .tag.transition { background: var(--warn); color: #000; }
-        .next-label { font-size: 12px; color: var(--sub); font-weight: 500; }
-        .countdown { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; }
-        .footer { font-size: 11px; color: #aeaeb2; text-align: center; padding: 20px 0; }
+
+        .name {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--sub);
+            margin-bottom: 6px;
+        }
+
+        .amount {
+            font-size: 52px;
+            font-weight: 900;
+            letter-spacing: -2px;
+            line-height: 1;
+            color: var(--text);
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .tag {
+            background: #3a3a3c;
+            color: #fff;
+            font-size: 13px;
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 10px;
+            letter-spacing: 0.3px;
+        }
+
+        .tag.transition {
+            background: var(--warn);
+            color: #000;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.8; }
+            100% { opacity: 1; }
+        }
+
+        .next-label {
+            font-size: 13px;
+            color: var(--sub);
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .countdown {
+            font-size: 28px;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            background: rgba(0,0,0,0.03);
+            padding: 4px 10px;
+            border-radius: 16px;
+            display: inline-block;
+        }
+
+        .footer {
+            font-size: 12px;
+            color: #aeaeb2;
+            text-align: center;
+            padding: 24px 0 8px;
+            font-weight: 400;
+            border-top: 1px solid rgba(0,0,0,0.05);
+            margin-top: 16px;
+        }
     </style>
 </head>
 <body>
@@ -38,139 +222,318 @@
 </div>
 
 <div class="selector">
-    <button id="btn-car" class="active" onclick="setVehicle('car')">私家車</button>
-    <button id="btn-moto" onclick="setVehicle('moto')">電單車</button>
+    <button id="btn-car" class="active">私家車</button>
+    <button id="btn-moto">電單車</button>
 </div>
 
-<div id="app"></div>
+<div id="app">
+    <!-- 載入動畫 -->
+    <div class="skeleton"></div>
+    <div class="skeleton"></div>
+    <div class="skeleton"></div>
+</div>
 
-<div class="footer">2026 方案｜黃色標籤代表正在進行 22 分鐘階梯式變價</div>
+<div class="footer">2026 方案 · 黃色標籤代表正在 22 分鐘階梯式變價</div>
 
 <script>
-    let vehicle = 'car';
-    const HOLIDAYS = ["2026-01-01", "2026-02-17", "2026-02-18", "2026-02-19", "2026-04-03", "2026-04-04", "2026-04-06", "2026-04-07", "2026-05-01", "2026-05-24", "2026-05-25", "2026-06-19", "2026-07-01", "2026-09-26", "2026-10-01", "2026-12-25", "2026-12-26"];
+    (function() {
+        'use strict';
 
-    const TUNNELS = [
-        { id: 'tlt', label: '大欖隧道 (TLT)', schedule: [
-            { s: "00:00", e: "07:15", car: 18, moto: 7.2, nS: "07:15", nC: 45, nM: 18, t: "深宵" },
-            { s: "07:15", e: "10:15", car: 45, moto: 18, nS: "10:15", nC: 30, nM: 12, t: "繁忙" },
-            { s: "10:15", e: "16:30", car: 30, moto: 12, nS: "16:30", nC: 45, nM: 18, t: "一般" },
-            { s: "16:30", e: "19:00", car: 45, moto: 18, nS: "19:00", nC: 18, nM: 7.2, t: "繁忙" },
-            { s: "19:00", e: "23:59", car: 18, moto: 7.2, nS: "07:15", nC: 45, nM: 18, t: "深宵" }
-        ]},
-        { id: 'whc', label: '西隧 (WHC)', schedule: [
-            { s: "00:00", e: "07:30", car: 20, moto: 8, nS: "07:30", nC: 60, nM: 24, t: "深宵" },
-            { s: "07:30", e: "10:15", car: 60, moto: 24, nS: "10:15", nC: 30, nM: 12, t: "繁忙" },
-            { s: "10:15", e: "16:30", car: 30, moto: 12, nS: "16:30", nC: 60, nM: 24, t: "一般" },
-            { s: "16:30", e: "19:00", car: 60, moto: 24, nS: "19:00", nC: 20, nM: 8, t: "繁忙" },
-            { s: "19:00", e: "23:59", car: 20, moto: 8, nS: "07:30", nC: 60, nM: 24, t: "深宵" }
-        ]},
-        { id: 'cht', label: '紅隧 / 東隧', schedule: [
-            { s: "00:00", e: "07:30", car: 20, moto: 8, nS: "07:30", nC: 40, nM: 16, t: "深宵" },
-            { s: "07:30", e: "10:15", car: 40, moto: 16, nS: "10:15", nC: 30, nM: 12, t: "繁忙" },
-            { s: "10:15", e: "16:30", car: 30, moto: 12, nS: "16:30", nC: 40, nM: 16, t: "一般" },
-            { s: "16:30", e: "19:00", car: 40, moto: 16, nS: "19:00", nC: 20, nM: 8, t: "繁忙" },
-            { s: "19:00", e: "23:59", car: 20, moto: 8, nS: "07:30", nC: 40, nM: 16, t: "深宵" }
-        ]}
-    ];
+        // ==================== 常數定義 ====================
+        const CONFIG = {
+            TRANSITION_DURATION: 1320,        // 22分鐘過渡期 (秒)
+            STEP_SECONDS: 120,                 // 2分鐘一跳
+            STEP_AMOUNT: { car: 2, moto: 0.8 }, // 每跳金額
+            HOLIDAY_FLAT_RATE: { car: 18, moto: 7.2 }, // 大欖假日劃一
+            STORAGE_KEY: 'preferredVehicle'
+        };
 
-    const toS = (str) => { const [h, m] = str.split(':').map(Number); return h * 3600 + m * 60; };
+        // 2026年公眾假期
+        const HOLIDAYS = new Set([
+            "2026-01-01", "2026-02-17", "2026-02-18", "2026-02-19",
+            "2026-04-03", "2026-04-04", "2026-04-06", "2026-04-07",
+            "2026-05-01", "2026-05-24", "2026-05-25", "2026-06-19",
+            "2026-07-01", "2026-09-26", "2026-10-01", "2026-12-25",
+            "2026-12-26"
+        ]);
 
-    function setVehicle(v) {
-        vehicle = v;
-        document.getElementById('btn-car').className = v === 'car' ? 'active' : '';
-        document.getElementById('btn-moto').className = v === 'moto' ? 'active' : '';
-    }
+        // ==================== 隧道資料 ====================
+        const TUNNELS = [
+            {
+                id: 'tlt',
+                label: '大欖隧道',
+                schedule: [
+                    { start: "00:00", end: "07:15", car: 18, moto: 7.2, nextStart: "07:15", nextCar: 45, nextMoto: 18, label: '深宵' },
+                    { start: "07:15", end: "10:15", car: 45, moto: 18, nextStart: "10:15", nextCar: 30, nextMoto: 12, label: '繁忙' },
+                    { start: "10:15", end: "16:30", car: 30, moto: 12, nextStart: "16:30", nextCar: 45, nextMoto: 18, label: '一般' },
+                    { start: "16:30", end: "19:00", car: 45, moto: 18, nextStart: "19:00", nextCar: 18, nextMoto: 7.2, label: '繁忙' },
+                    { start: "19:00", end: "23:59", car: 18, moto: 7.2, nextStart: "07:15", nextCar: 45, nextMoto: 18, label: '深宵' }
+                ]
+            },
+            {
+                id: 'whc',
+                label: '西隧',
+                schedule: [
+                    { start: "00:00", end: "07:30", car: 20, moto: 8, nextStart: "07:30", nextCar: 60, nextMoto: 24, label: '深宵' },
+                    { start: "07:30", end: "10:15", car: 60, moto: 24, nextStart: "10:15", nextCar: 30, nextMoto: 12, label: '繁忙' },
+                    { start: "10:15", end: "16:30", car: 30, moto: 12, nextStart: "16:30", nextCar: 60, nextMoto: 24, label: '一般' },
+                    { start: "16:30", end: "19:00", car: 60, moto: 24, nextStart: "19:00", nextCar: 20, nextMoto: 8, label: '繁忙' },
+                    { start: "19:00", end: "23:59", car: 20, moto: 8, nextStart: "07:30", nextCar: 60, nextMoto: 24, label: '深宵' }
+                ]
+            },
+            {
+                id: 'cht',
+                label: '紅磡／東隧',
+                schedule: [
+                    { start: "00:00", end: "07:30", car: 20, moto: 8, nextStart: "07:30", nextCar: 40, nextMoto: 16, label: '深宵' },
+                    { start: "07:30", end: "10:15", car: 40, moto: 16, nextStart: "10:15", nextCar: 30, nextMoto: 12, label: '繁忙' },
+                    { start: "10:15", end: "16:30", car: 30, moto: 12, nextStart: "16:30", nextCar: 40, nextMoto: 16, label: '一般' },
+                    { start: "16:30", end: "19:00", car: 40, moto: 16, nextStart: "19:00", nextCar: 20, nextMoto: 8, label: '繁忙' },
+                    { start: "19:00", end: "23:59", car: 20, moto: 8, nextStart: "07:30", nextCar: 40, nextMoto: 16, label: '深宵' }
+                ]
+            }
+        ];
 
-    function getTransitionPrice(prevFee, currentFee, elapsedSec, isMoto) {
-        const stepSec = 120; // 2分鐘跳一次
-        const stepAmt = isMoto ? 0.8 : 2; // 每次跳動金額
-        const stepsPassed = Math.floor(elapsedSec / stepSec);
-        if (currentFee > prevFee) {
-            return Math.min(currentFee, prevFee + (stepsPassed * stepAmt));
-        } else {
-            return Math.max(currentFee, prevFee - (stepsPassed * stepAmt));
-        }
-    }
+        // ==================== 狀態變數 ====================
+        let vehicle = localStorage.getItem(CONFIG.STORAGE_KEY) || 'car';
+        let isInitialRender = true;
 
-    function render() {
-        const now = new Date();
-        const curS = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
-        const dateKey = now.toLocaleDateString('en-CA');
-        const isRedDay = now.getDay() === 0 || HOLIDAYS.includes(dateKey);
-        const isMoto = vehicle === 'moto';
+        // ==================== 工具函數 ====================
+        const timeToSeconds = (timeStr) => {
+            if (!timeStr) return 0;
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 3600 + minutes * 60;
+        };
 
-        document.getElementById('clock').textContent = now.toLocaleString('zh-HK', { hour12: false });
+        const formatCurrency = (amount) => {
+            return Number.isInteger(amount) ? `$${amount}` : `$${amount.toFixed(1)}`;
+        };
 
-        let html = '';
-        TUNNELS.forEach(tn => {
-            let slot, targetS = null, label, isTransitioning = false, displayFee;
-            
-            if (isRedDay && tn.id === 'tlt') {
-                displayFee = isMoto ? 7.2 : 18;
-                label = "假日劃一";
-                targetS = null;
-            } else {
-                // 處理西隧、紅東隧假日邏輯
-                if (isRedDay) {
-                    const isGeneral = curS >= toS("10:15") && curS < toS("19:15");
-                    const startTime = isGeneral ? toS("10:15") : toS("19:15");
-                    const prevFee = isGeneral ? (isMoto ? 8 : 20) : (isMoto ? 10 : 25);
-                    const targetFee = isGeneral ? (isMoto ? 10 : 25) : (isMoto ? 8 : 20);
-                    
-                    const elapsed = curS - startTime;
-                    if (elapsed >= 0 && elapsed < 1320) {
-                        isTransitioning = true;
-                        displayFee = getTransitionPrice(prevFee, targetFee, elapsed, isMoto);
-                        targetS = startTime + 1320;
-                    } else {
-                        displayFee = targetFee;
-                        targetS = isGeneral ? toS("19:15") : toS("10:15");
-                    }
-                    label = isGeneral ? "假日一般" : "假日非繁忙";
+        const formatTime = (seconds) => {
+            if (seconds < 0 || !isFinite(seconds)) return '--:--:--';
+            const hrs = Math.floor(seconds / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        };
+
+        // ==================== 核心邏輯 ====================
+        function getTransitionPrice(prevFee, targetFee, elapsedSec, isMoto) {
+            try {
+                if (elapsedSec < 0 || elapsedSec >= CONFIG.TRANSITION_DURATION) {
+                    return targetFee;
+                }
+                
+                const stepAmount = isMoto ? CONFIG.STEP_AMOUNT.moto : CONFIG.STEP_AMOUNT.car;
+                const stepsPassed = Math.floor(elapsedSec / CONFIG.STEP_SECONDS);
+                
+                if (targetFee > prevFee) {
+                    return Math.min(targetFee, prevFee + (stepsPassed * stepAmount));
                 } else {
-                    // 平日邏輯
-                    slot = tn.schedule.find(s => curS >= toS(s.s) && curS < toS(s.e)) || tn.schedule[4];
-                    const startTime = toS(slot.s);
-                    const targetFee = isMoto ? slot.moto : slot.car;
+                    return Math.max(targetFee, prevFee - (stepsPassed * stepAmount));
+                }
+            } catch (error) {
+                console.warn('價格計算錯誤，使用目標價格', error);
+                return targetFee;
+            }
+        }
+
+        function calculateTunnelFee(tunnel, currentSeconds, dateKey, dayOfWeek, isMoto) {
+            const isRedDay = dayOfWeek === 0 || HOLIDAYS.has(dateKey);
+            
+            // 大欖隧道假日特別處理
+            if (isRedDay && tunnel.id === 'tlt') {
+                const fee = isMoto ? CONFIG.HOLIDAY_FLAT_RATE.moto : CONFIG.HOLIDAY_FLAT_RATE.car;
+                return {
+                    fee,
+                    label: '假日劃一',
+                    nextTarget: null,
+                    isTransitioning: false
+                };
+            }
+            
+            // 西隧、紅隧假日處理
+            if (isRedDay && tunnel.id !== 'tlt') {
+                const isGeneral = currentSeconds >= timeToSeconds("10:15") && currentSeconds < timeToSeconds("19:15");
+                
+                if (isGeneral) {
+                    // 假日一般時段 (10:15-19:15)
+                    const startTime = timeToSeconds("10:15");
+                    const prevFee = isMoto ? 8 : 20;
+                    const targetFee = isMoto ? 10 : 25;
+                    const elapsed = currentSeconds - startTime;
                     
-                    const elapsed = curS - startTime;
-                    if (elapsed >= 0 && elapsed < 1320 && startTime !== 0) {
-                        isTransitioning = true;
-                        const prevSlotIndex = (tn.schedule.indexOf(slot) - 1 + 5) % 5;
-                        const prevSlot = tn.schedule[prevSlotIndex];
-                        const prevFee = isMoto ? prevSlot.moto : prevSlot.car;
-                        displayFee = getTransitionPrice(prevFee, targetFee, elapsed, isMoto);
-                        targetS = startTime + 1320;
-                    } else {
-                        displayFee = targetFee;
-                        targetS = toS(slot.nS);
+                    if (elapsed >= 0 && elapsed < CONFIG.TRANSITION_DURATION) {
+                        return {
+                            fee: getTransitionPrice(prevFee, targetFee, elapsed, isMoto),
+                            label: '假日一般',
+                            nextTarget: startTime + CONFIG.TRANSITION_DURATION,
+                            isTransitioning: true
+                        };
                     }
-                    label = slot.t;
+                    return {
+                        fee: targetFee,
+                        label: '假日一般',
+                        nextTarget: timeToSeconds("19:15"),
+                        isTransitioning: false
+                    };
+                } else {
+                    // 假日非繁忙
+                    const startTime = timeToSeconds("19:15");
+                    const prevFee = isMoto ? 10 : 25;
+                    const targetFee = isMoto ? 8 : 20;
+                    const elapsed = currentSeconds - startTime;
+                    
+                    if (elapsed >= 0 && elapsed < CONFIG.TRANSITION_DURATION) {
+                        return {
+                            fee: getTransitionPrice(prevFee, targetFee, elapsed, isMoto),
+                            label: '假日非繁忙',
+                            nextTarget: startTime + CONFIG.TRANSITION_DURATION,
+                            isTransitioning: true
+                        };
+                    }
+                    return {
+                        fee: targetFee,
+                        label: '假日非繁忙',
+                        nextTarget: timeToSeconds("10:15"),
+                        isTransitioning: false
+                    };
                 }
             }
+            
+            // 平日邏輯
+            const slot = tunnel.schedule.find(s => 
+                currentSeconds >= timeToSeconds(s.start) && 
+                currentSeconds < timeToSeconds(s.end)
+            ) || tunnel.schedule[tunnel.schedule.length - 1];
+            
+            const startTime = timeToSeconds(slot.start);
+            const targetFee = isMoto ? slot.moto : slot.car;
+            const elapsed = currentSeconds - startTime;
+            
+            // 檢查是否在過渡期 (22分鐘內)
+            if (elapsed >= 0 && elapsed < CONFIG.TRANSITION_DURATION && startTime !== 0) {
+                const prevSlotIndex = (tunnel.schedule.indexOf(slot) - 1 + tunnel.schedule.length) % tunnel.schedule.length;
+                const prevSlot = tunnel.schedule[prevSlotIndex];
+                const prevFee = isMoto ? prevSlot.moto : prevSlot.car;
+                
+                return {
+                    fee: getTransitionPrice(prevFee, targetFee, elapsed, isMoto),
+                    label: slot.label,
+                    nextTarget: startTime + CONFIG.TRANSITION_DURATION,
+                    isTransitioning: true
+                };
+            }
+            
+            // 穩定狀態
+            const nextTarget = timeToSeconds(slot.nextStart);
+            return {
+                fee: targetFee,
+                label: slot.label,
+                nextTarget: nextTarget > currentSeconds ? nextTarget : nextTarget + 86400,
+                isTransitioning: false
+            };
+        }
 
-            let diff = targetS ? (targetS - curS) : 0;
-            if (diff <= 0 && targetS) diff += 86400;
-            const timeStr = targetS ? `${String(Math.floor(diff/3600)).padStart(2,'0')}:${String(Math.floor((diff%3600)/60)).padStart(2,'0')}:${String(diff%60).padStart(2,'0')}` : "--:--:--";
+        // ==================== UI 更新 ====================
+        function setVehicle(v) {
+            if (vehicle === v) return;
+            
+            vehicle = v;
+            localStorage.setItem(CONFIG.STORAGE_KEY, v);
+            
+            // 更新按鈕狀態
+            document.getElementById('btn-car').className = v === 'car' ? 'active' : '';
+            document.getElementById('btn-moto').className = v === 'moto' ? 'active' : '';
+        }
 
-            html += `
-                <div class="card ${tn.id}">
-                    <div class="left">
-                        <div class="name">${tn.label}</div>
-                        <div class="amount">$${displayFee.toFixed(1).replace('.0', '')}</div>
+        function render() {
+            try {
+                const now = new Date();
+                const currentSeconds = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+                const dateKey = now.toLocaleDateString('en-CA');
+                const dayOfWeek = now.getDay();
+                const isMoto = vehicle === 'moto';
+
+                // 更新時鐘
+                document.getElementById('clock').textContent = now.toLocaleTimeString('zh-HK', { 
+                    hour12: false,
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+
+                // 生成隧道卡片 HTML
+                let html = '';
+                for (const tunnel of TUNNELS) {
+                    const result = calculateTunnelFee(tunnel, currentSeconds, dateKey, dayOfWeek, isMoto);
+                    
+                    // 計算倒數時間
+                    let countdown = '--:--:--';
+                    if (result.nextTarget) {
+                        let diff = result.nextTarget - currentSeconds;
+                        if (diff <= 0) diff += 86400;
+                        countdown = formatTime(diff);
+                    }
+
+                    html += `
+                        <div class="card ${tunnel.id}">
+                            <div class="left">
+                                <div class="name">${tunnel.label}</div>
+                                <div class="amount">${formatCurrency(result.fee)}</div>
+                            </div>
+                            <div class="right">
+                                <div class="tag ${result.isTransitioning ? 'transition' : ''}">
+                                    ${result.isTransitioning ? '變價中' : result.label}
+                                </div>
+                                <div class="next-label">
+                                    ${result.isTransitioning ? '距離穩定收費' : '距離下一時段'}
+                                </div>
+                                <div class="countdown">${countdown}</div>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                document.getElementById('app').innerHTML = html;
+                isInitialRender = false;
+                
+            } catch (error) {
+                console.error('渲染錯誤:', error);
+                document.getElementById('app').innerHTML = `
+                    <div style="background: #ff3b30; color: white; padding: 20px; border-radius: 16px; text-align: center;">
+                        載入失敗，請重新整理
                     </div>
-                    <div class="right">
-                        <div class="tag ${isTransitioning ? 'transition' : ''}">${isTransitioning ? '變價中' : label}</div>
-                        <div class="next-label">${isTransitioning ? '距離穩定收費' : '距離下一時段'}</div>
-                        <div class="countdown">${timeStr}</div>
-                    </div>
-                </div>`;
-        });
-        document.getElementById('app').innerHTML = html;
-        requestAnimationFrame(render);
-    }
-    requestAnimationFrame(render);
+                `;
+            }
+        }
+
+        // ==================== 初始化 ====================
+        function init() {
+            // 綁定按鈕事件
+            document.getElementById('btn-car').addEventListener('click', () => setVehicle('car'));
+            document.getElementById('btn-moto').addEventListener('click', () => setVehicle('moto'));
+            
+            // 立即執行一次渲染
+            render();
+            
+            // 每秒更新一次 (取代 requestAnimationFrame)
+            setInterval(render, 1000);
+            
+            // 加入鍵盤支援
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'c' || e.key === 'C') setVehicle('car');
+                if (e.key === 'm' || e.key === 'M') setVehicle('moto');
+            });
+        }
+
+        // 等待 DOM 載入完成
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', init);
+        } else {
+            init();
+        }
+    })();
 </script>
 </body>
 </html>
