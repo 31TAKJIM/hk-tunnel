@@ -246,7 +246,8 @@
 
         // ==================== 常數定義 ====================
         const CONFIG = {
-            TRANSITION_DURATION: 1320,        // 22分鐘過渡期 (秒)
+            TRANSITION_DURATION: 1320,        // 22分鐘過渡期 (預設)
+            WHC_TRANSITION_DURATION: 1680,     // 西隧 28分鐘過渡期 (10:15 → 10:43)
             STEP_SECONDS: 120,                 // 2分鐘一跳
             STEP_AMOUNT: { car: 2, moto: 0.8 }, // 每跳金額
             HOLIDAY_FLAT_RATE: { car: 18, moto: 7.2 }, // 大欖假日劃一
@@ -344,7 +345,6 @@
             if (isRedDay && tunnel.id === 'tlt') {
                 const targetFee = isMoto ? CONFIG.HOLIDAY_FLAT_RATE.moto : CONFIG.HOLIDAY_FLAT_RATE.car;
                 
-                // 由深宵過渡到假日劃一 (07:15)
                 const transitionStart = timeToSeconds("07:15");
                 if (currentSeconds >= transitionStart && currentSeconds < transitionStart + CONFIG.TRANSITION_DURATION) {
                     const elapsed = currentSeconds - transitionStart;
@@ -422,7 +422,15 @@
             const targetFee = isMoto ? slot.moto : slot.car;
             const elapsed = currentSeconds - startTime;
             
-            if (elapsed >= 0 && elapsed < CONFIG.TRANSITION_DURATION && startTime !== 0) {
+            // 判斷使用邊個過渡期時間
+            let transitionDuration = CONFIG.TRANSITION_DURATION;
+            
+            // 西隧平日用 28分鐘過渡期
+            if (tunnel.id === 'whc' && !isRedDay) {
+                transitionDuration = CONFIG.WHC_TRANSITION_DURATION;
+            }
+            
+            if (elapsed >= 0 && elapsed < transitionDuration && startTime !== 0) {
                 const prevSlotIndex = (tunnel.schedule.indexOf(slot) - 1 + tunnel.schedule.length) % tunnel.schedule.length;
                 const prevSlot = tunnel.schedule[prevSlotIndex];
                 const prevFee = isMoto ? prevSlot.moto : prevSlot.car;
@@ -430,7 +438,7 @@
                 return {
                     fee: getTransitionPrice(prevFee, targetFee, elapsed, isMoto),
                     label: slot.label,
-                    nextTarget: startTime + CONFIG.TRANSITION_DURATION,
+                    nextTarget: startTime + transitionDuration,
                     isTransitioning: true
                 };
             }
